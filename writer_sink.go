@@ -4,15 +4,6 @@ import "io"
 
 const logBufferSize = 1024
 
-type LogLevel int
-
-const (
-	DEBUG LogLevel = iota
-	INFO
-	ERROR
-	FATAL
-)
-
 // A Sink represents a write destination for a Logger. It provides
 // a thread-safe interface for writing logs
 type Sink interface {

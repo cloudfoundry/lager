@@ -11,23 +11,25 @@ import (
 
 var _ = Describe("Logger", func() {
 	var logger lager.Logger
-	var testSink *lager.TestLogger
+	var testSink *lager.TestSink
 
 	var component = "my-component"
 	var task = "my-task"
 	var action = "my-action"
 	var description = "my-description"
+	var logData = lager.Data{"foo": "bar"}
 
 	BeforeEach(func() {
 		logger = lager.NewLogger(component)
-		testSink = lager.NewTestLogger()
+		testSink = lager.NewTestSink()
 		logger.RegisterSink(testSink)
 	})
 
 	Describe("Debug", func() {
 		BeforeEach(func() {
-			logger.Debug(task, action, description, lager.Data{"foo": "bar"})
+			logger.Debug(task, action, description, logData)
 		})
+
 		It("writes the proper log format", func() {
 			logs := testSink.Logs()
 

@@ -7,25 +7,25 @@ import (
 	"sync"
 )
 
-type TestLogger struct {
+type TestSink struct {
 	contents []byte
 	lock     *sync.Mutex
 }
 
-func NewTestLogger() *TestLogger {
-	return &TestLogger{
+func NewTestSink() *TestSink {
+	return &TestSink{
 		lock: &sync.Mutex{},
 	}
 }
 
-func (l *TestLogger) Log(level LogLevel, p []byte) {
+func (l *TestSink) Log(level LogLevel, p []byte) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
 	l.contents = append(l.contents, p...)
 }
 
-func (l *TestLogger) Buffer() *bytes.Buffer {
+func (l *TestSink) Buffer() *bytes.Buffer {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
@@ -34,7 +34,7 @@ func (l *TestLogger) Buffer() *bytes.Buffer {
 	return bytes.NewBuffer(contents)
 }
 
-func (l *TestLogger) Logs() []LogFormat {
+func (l *TestSink) Logs() []LogFormat {
 	logs := []LogFormat{}
 	decoder := json.NewDecoder(l.Buffer())
 	for {

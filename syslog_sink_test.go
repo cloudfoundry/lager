@@ -117,7 +117,7 @@ var _ = Describe("SyslogSink", func() {
 			It("should emit an Emerg message when given a FATAL log", func() {
 				sink.Log(FATAL, []byte("hello"))
 
-				Eventually(results).Should(Receive(ContainSubstring("<24>")))
+				Eventually(results).Should(Receive(ContainSubstring("<26>")))
 			})
 		})
 	})

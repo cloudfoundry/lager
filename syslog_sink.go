@@ -41,7 +41,7 @@ func (sink *syslogSink) listen() {
 		case ERROR:
 			sink.writer.Err(string(payload.payload))
 		case FATAL:
-			sink.writer.Emerg(string(payload.payload))
+			sink.writer.Crit(string(payload.payload))
 		}
 	}
 }

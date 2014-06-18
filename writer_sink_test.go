@@ -38,7 +38,7 @@ var _ = Describe("WriterSink", func() {
 		})
 
 		It("writes to the given writer", func() {
-			Ω(writer.Copy()).Should(Equal([]byte("hello world")))
+			Ω(writer.Copy()).Should(Equal([]byte("hello world\n")))
 		})
 	})
 
@@ -86,6 +86,7 @@ var _ = Describe("WriterSink", func() {
 			expectedBytes := []byte{}
 			for i := 0; i < MaxThreads; i++ {
 				expectedBytes = append(expectedBytes, []byte(content)...)
+				expectedBytes = append(expectedBytes, []byte("\n")...)
 			}
 			Ω(writer.Copy()).Should(Equal(expectedBytes))
 		})

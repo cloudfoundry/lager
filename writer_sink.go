@@ -33,6 +33,7 @@ func (sink *writerSink) listen() {
 	for {
 		log := <-sink.logChan
 		sink.writer.Write(log)
+		sink.writer.Write([]byte("\n"))
 	}
 }
 

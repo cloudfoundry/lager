@@ -33,7 +33,7 @@ func (l *logger) RegisterSink(sink Sink) {
 }
 
 func (l *logger) Debug(task, action, description string, data ...Data) {
-	var logData Data
+	logData := Data{}
 	if len(data) > 0 {
 		logData = data[0]
 	}
@@ -54,7 +54,7 @@ func (l *logger) Debug(task, action, description string, data ...Data) {
 }
 
 func (l *logger) Info(task, action, description string, data ...Data) {
-	var logData Data
+	logData := Data{}
 	if len(data) > 0 {
 		logData = data[0]
 	}
@@ -75,13 +75,15 @@ func (l *logger) Info(task, action, description string, data ...Data) {
 }
 
 func (l *logger) Error(task, action, description string, err error, data ...Data) {
-	var logData Data
+	logData := Data{}
 	if len(data) > 0 {
 		logData = data[0]
 	}
 
 	logData["description"] = description
-	logData["error"] = err.Error()
+	if err != nil {
+		logData["error"] = err.Error()
+	}
 
 	log := LogFormat{
 		Timestamp: currentTimestamp(),
@@ -97,7 +99,7 @@ func (l *logger) Error(task, action, description string, err error, data ...Data
 }
 
 func (l *logger) Fatal(task, action, description string, err error, data ...Data) {
-	var logData Data
+	logData := Data{}
 	if len(data) > 0 {
 		logData = data[0]
 	}
@@ -107,7 +109,9 @@ func (l *logger) Fatal(task, action, description string, err error, data ...Data
 	stackTrace = stackTrace[:stackSize]
 
 	logData["description"] = description
-	logData["error"] = err.Error()
+	if err != nil {
+		logData["error"] = err.Error()
+	}
 	logData["trace"] = string(stackTrace)
 
 	log := LogFormat{

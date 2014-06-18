@@ -24,24 +24,22 @@ var _ = Describe("Logger", func() {
 		"foo":      "bar",
 		"a-number": 7,
 	}
-	var logs []lager.LogFormat
 
 	BeforeEach(func() {
 		logger = lager.NewLogger(component)
 		testSink = lager.NewTestSink()
 		logger.RegisterSink(testSink)
-		logs = nil
 	})
 
-	var TestForCommonLogFeatures = func() {
+	var TestCommonLogFeatures = func(level lager.LogLevel) {
 		var log lager.LogFormat
 
 		BeforeEach(func() {
-			log = logs[0]
+			log = testSink.Logs()[0]
 		})
 
 		It("writes a log to the sink", func() {
-			Ω(logs).Should(HaveLen(1))
+			Ω(testSink.Logs()).Should(HaveLen(1))
 		})
 
 		It("records the source component", func() {
@@ -63,6 +61,18 @@ var _ = Describe("Logger", func() {
 			Ω(log.Data["description"]).Should(Equal(description))
 		})
 
+		It("sets the proper output level", func() {
+			Ω(log.LogLevel).Should(Equal(level))
+		})
+	}
+
+	var TestLogData = func() {
+		var log lager.LogFormat
+
+		BeforeEach(func() {
+			log = testSink.Logs()[0]
+		})
+
 		It("data contains custom user data", func() {
 			Ω(log.Data["foo"]).Should(Equal("bar"))
 			Ω(log.Data["a-number"]).Should(BeNumerically("==", 7))
@@ -70,79 +80,158 @@ var _ = Describe("Logger", func() {
 	}
 
 	Describe("Debug", func() {
-		BeforeEach(func() {
-			logger.Debug(task, action, description, logData)
-			logs = testSink.Logs()
+		Context("with log data", func() {
+			BeforeEach(func() {
+				logger.Debug(task, action, description, logData)
+			})
+
+			TestCommonLogFeatures(lager.DEBUG)
+			TestLogData()
 		})
 
-		TestForCommonLogFeatures()
+		Context("with no log data", func() {
+			BeforeEach(func() {
+				logger.Debug(task, action, description)
+			})
 
-		It("sets the proper output level", func() {
-			Ω(logs[0].LogLevel).Should(Equal(lager.DEBUG))
+			TestCommonLogFeatures(lager.DEBUG)
 		})
 	})
 
 	Describe("Info", func() {
-		BeforeEach(func() {
-			logger.Info(task, action, description, logData)
-			logs = testSink.Logs()
+		Context("with log data", func() {
+			BeforeEach(func() {
+				logger.Info(task, action, description, logData)
+			})
+
+			TestCommonLogFeatures(lager.INFO)
+			TestLogData()
 		})
 
-		TestForCommonLogFeatures()
+		Context("with no log data", func() {
+			BeforeEach(func() {
+				logger.Info(task, action, description)
+			})
 
-		It("sets the proper output level", func() {
-			Ω(logs[0].LogLevel).Should(Equal(lager.INFO))
+			TestCommonLogFeatures(lager.INFO)
 		})
-
 	})
 
 	Describe("Error", func() {
 		var err = errors.New("oh noes!")
+		Context("with log data", func() {
+			BeforeEach(func() {
+				logger.Error(task, action, description, err, logData)
+			})
 
-		BeforeEach(func() {
-			logger.Error(task, action, description, err, logData)
-			logs = testSink.Logs()
+			TestCommonLogFeatures(lager.ERROR)
+			TestLogData()
+
+			It("data contains error message", func() {
+				Ω(testSink.Logs()[0].Data["error"]).Should(Equal(err.Error()))
+			})
 		})
 
-		TestForCommonLogFeatures()
+		Context("with no log data", func() {
+			BeforeEach(func() {
+				logger.Error(task, action, description, err)
+			})
 
-		It("sets the proper output level", func() {
-			Ω(logs[0].LogLevel).Should(Equal(lager.ERROR))
+			TestCommonLogFeatures(lager.ERROR)
+
+			It("data contains error message", func() {
+				Ω(testSink.Logs()[0].Data["error"]).Should(Equal(err.Error()))
+			})
 		})
 
-		It("data contains error message", func() {
-			Ω(logs[0].Data["error"]).Should(Equal(err.Error()))
+		Context("with no error", func() {
+			BeforeEach(func() {
+				logger.Error(task, action, description, nil)
+			})
+
+			TestCommonLogFeatures(lager.ERROR)
+
+			It("does not contain the error message", func() {
+				Ω(testSink.Logs()[0].Data).ShouldNot(HaveKey("error"))
+			})
 		})
 	})
 
 	Describe("Fatal", func() {
 		var err = errors.New("oh noes!")
 		var fatalErr interface{}
-		BeforeEach(func() {
-			defer func() {
-				fatalErr = recover()
-				logs = testSink.Logs()
-			}()
 
-			logger.Fatal(task, action, description, err, logData)
+		Context("with log data", func() {
+			BeforeEach(func() {
+				defer func() {
+					fatalErr = recover()
+				}()
+
+				logger.Fatal(task, action, description, err, logData)
+			})
+
+			TestCommonLogFeatures(lager.FATAL)
+			TestLogData()
+
+			It("data contains error message", func() {
+				Ω(testSink.Logs()[0].Data["error"]).Should(Equal(err.Error()))
+			})
+
+			It("data contains stack trace", func() {
+				Ω(testSink.Logs()[0].Data["trace"]).ShouldNot(BeEmpty())
+			})
+
+			It("panics with the provided error", func() {
+				Ω(fatalErr).Should(Equal(err))
+			})
 		})
 
-		TestForCommonLogFeatures()
+		Context("with no log data", func() {
+			BeforeEach(func() {
+				defer func() {
+					fatalErr = recover()
+				}()
 
-		It("sets the proper output level", func() {
-			Ω(logs[0].LogLevel).Should(Equal(lager.FATAL))
+				logger.Fatal(task, action, description, err)
+			})
+
+			TestCommonLogFeatures(lager.FATAL)
+
+			It("data contains error message", func() {
+				Ω(testSink.Logs()[0].Data["error"]).Should(Equal(err.Error()))
+			})
+
+			It("data contains stack trace", func() {
+				Ω(testSink.Logs()[0].Data["trace"]).ShouldNot(BeEmpty())
+			})
+
+			It("panics with the provided error", func() {
+				Ω(fatalErr).Should(Equal(err))
+			})
 		})
 
-		It("data contains error message", func() {
-			Ω(logs[0].Data["error"]).Should(Equal(err.Error()))
-		})
+		Context("with no error", func() {
+			BeforeEach(func() {
+				defer func() {
+					fatalErr = recover()
+				}()
 
-		It("data contains stack trace", func() {
-			Ω(logs[0].Data["trace"]).ShouldNot(BeEmpty())
-		})
+				logger.Fatal(task, action, description, nil)
+			})
 
-		It("panics with the provided error", func() {
-			Ω(fatalErr).Should(Equal(err))
+			TestCommonLogFeatures(lager.FATAL)
+
+			It("does not contain the error message", func() {
+				Ω(testSink.Logs()[0].Data).ShouldNot(HaveKey("error"))
+			})
+
+			It("data contains stack trace", func() {
+				Ω(testSink.Logs()[0].Data["trace"]).ShouldNot(BeEmpty())
+			})
+
+			It("panics with the provided error (i.e. nil)", func() {
+				Ω(fatalErr).Should(BeNil())
+			})
 		})
 	})
 })

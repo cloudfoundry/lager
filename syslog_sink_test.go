@@ -11,17 +11,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-//need a server
-//make a new syslog sink with the server
-
 //taken from http://golang.org/src/pkg/log/syslog/syslog_test.go
-
-func runStreamSyslog(listener net.Listener, results chan<- string) {
+func runStreamSyslog(slow bool, listener net.Listener, results chan<- string) {
 	for {
 		var connection net.Conn
 		var err error
 		if connection, err = listener.Accept(); err != nil {
 			return
+		}
+		if slow {
+			time.Sleep(100 * time.Minute)
 		}
 		go func(connection net.Conn) {
 			connection.SetReadDeadline(time.Now().Add(5 * time.Second))
@@ -38,7 +37,7 @@ func runStreamSyslog(listener net.Listener, results chan<- string) {
 	}
 }
 
-func startServer(results chan<- string) (addr string, sock io.Closer) {
+func startServer(slow bool, results chan<- string) (addr string, sock io.Closer) {
 	listenerAddress := "127.0.0.1:0"
 	transport := "tcp"
 
@@ -48,7 +47,7 @@ func startServer(results chan<- string) (addr string, sock io.Closer) {
 	addr = listener.Addr().String()
 	sock = listener
 	go func() {
-		runStreamSyslog(listener, results)
+		runStreamSyslog(slow, listener, results)
 	}()
 
 	return addr, listener
@@ -60,64 +59,96 @@ var _ = Describe("SyslogSink", func() {
 	var serverAddress string
 	var listener io.Closer
 
-	BeforeEach(func() {
-		var err error
-
-		results = make(chan string)
-		serverAddress, listener = startServer(results)
-		sink, err = NewSyslogSink("tcp", serverAddress, "my-tag", INFO)
-		Ω(err).ShouldNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		listener.Close()
-	})
-
-	Context("when the logging level is above the minimum level", func() {
-		It("should log to syslog", func() {
-			sink.Log(INFO, []byte("hello"))
-
-			Eventually(results).Should(Receive(MatchRegexp(`my-tag\[\d+\]: hello`)))
-		})
-	})
-
-	Context("when the logging level is below the minimum level", func() {
-		It("should not log to syslog", func() {
-			sink.Log(DEBUG, []byte("hello"))
-
-			Consistently(results).ShouldNot(Receive())
-		})
-	})
-
-	Describe("supporting different log levels", func() {
+	Context("with a working syslog server", func() {
 		BeforeEach(func() {
 			var err error
-			sink, err = NewSyslogSink("tcp", serverAddress, "my-tag", DEBUG)
+
+			results = make(chan string)
+			serverAddress, listener = startServer(false, results)
+			sink, err = NewSyslogSink("tcp", serverAddress, "my-tag", INFO)
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should emit an Debug message when given a DEBUG log", func() {
-			sink.Log(DEBUG, []byte("hello"))
-
-			Eventually(results).Should(Receive(ContainSubstring("<31>")))
+		AfterEach(func() {
+			listener.Close()
 		})
 
-		It("should emit an Info message when given an INFO log", func() {
-			sink.Log(INFO, []byte("hello"))
+		Context("when the logging level is above the minimum level", func() {
+			It("should log to syslog", func() {
+				sink.Log(INFO, []byte("hello"))
 
-			Eventually(results).Should(Receive(ContainSubstring("<30>")))
+				Eventually(results).Should(Receive(MatchRegexp(`my-tag\[\d+\]: hello`)))
+			})
 		})
 
-		It("should emit an Err message when given an ERROR log", func() {
-			sink.Log(ERROR, []byte("hello"))
+		Context("when the logging level is below the minimum level", func() {
+			It("should not log to syslog", func() {
+				sink.Log(DEBUG, []byte("hello"))
 
-			Eventually(results).Should(Receive(ContainSubstring("<27>")))
+				Consistently(results).ShouldNot(Receive())
+			})
 		})
 
-		It("should emit an Emerg message when given a FATAL log", func() {
-			sink.Log(FATAL, []byte("hello"))
+		Describe("supporting different log levels", func() {
+			BeforeEach(func() {
+				var err error
+				sink, err = NewSyslogSink("tcp", serverAddress, "my-tag", DEBUG)
+				Ω(err).ShouldNot(HaveOccurred())
+			})
 
-			Eventually(results).Should(Receive(ContainSubstring("<24>")))
+			It("should emit an Debug message when given a DEBUG log", func() {
+				sink.Log(DEBUG, []byte("hello"))
+
+				Eventually(results).Should(Receive(ContainSubstring("<31>")))
+			})
+
+			It("should emit an Info message when given an INFO log", func() {
+				sink.Log(INFO, []byte("hello"))
+
+				Eventually(results).Should(Receive(ContainSubstring("<30>")))
+			})
+
+			It("should emit an Err message when given an ERROR log", func() {
+				sink.Log(ERROR, []byte("hello"))
+
+				Eventually(results).Should(Receive(ContainSubstring("<27>")))
+			})
+
+			It("should emit an Emerg message when given a FATAL log", func() {
+				sink.Log(FATAL, []byte("hello"))
+
+				Eventually(results).Should(Receive(ContainSubstring("<24>")))
+			})
+		})
+	})
+
+	Context("with a slow syslog server", func() {
+		BeforeEach(func() {
+			var err error
+
+			results = make(chan string)
+			serverAddress, listener = startServer(true, results)
+			sink, err = NewSyslogSink("tcp", serverAddress, "my-tag", INFO)
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			listener.Close()
+		})
+
+		It("should never block", func(done Done) {
+			for i := 0; i < 1000000; i++ { //do this alot to fill the buffer deep in the bowels of syslog
+				sink.Log(INFO, []byte("hello"))
+			}
+			close(done)
+		})
+	})
+
+	Context("with no server", func() {
+		It("should return an error, but not get stuck", func() {
+			var err error
+			sink, err = NewSyslogSink("tcp", "127.0.0.1:12382", "my-tag", INFO)
+			Ω(err).Should(HaveOccurred())
 		})
 	})
 })

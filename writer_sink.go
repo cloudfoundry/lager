@@ -40,5 +40,8 @@ func (sink *writerSink) Log(level LogLevel, log []byte) {
 	if level < sink.minLogLevel {
 		return
 	}
-	sink.logChan <- log
+	select {
+	case sink.logChan <- log:
+	default:
+	}
 }

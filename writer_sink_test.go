@@ -52,6 +52,21 @@ var _ = Describe("WriterSink", func() {
 		})
 	})
 
+	Context("when the writer attached to the sink is writing very slowly", func() {
+		BeforeEach(func() {
+			slowWriter := NewSlowWriter()
+			sink = lager.NewWriterSink(slowWriter, lager.INFO)
+		})
+
+		It("should not block on calls to sink.Log", func(done Done) {
+			for i := 0; i < 1024*2; i++ {
+				sink.Log(lager.INFO, []byte("hello world"))
+			}
+
+			close(done)
+		})
+	})
+
 	Context("when logging from multiple threads", func() {
 		var content = "abcdefg "
 
@@ -75,7 +90,6 @@ var _ = Describe("WriterSink", func() {
 			Ω(writer.Copy()).Should(Equal(expectedBytes))
 		})
 	})
-
 })
 
 // copyWriter is an INTENTIONALLY UNSAFE writer. Use it to test code that
@@ -108,4 +122,16 @@ func (writer *copyWriter) Copy() []byte {
 	contents := make([]byte, len(writer.contents))
 	copy(contents, writer.contents)
 	return contents
+}
+
+type slowWriter struct {
+}
+
+func NewSlowWriter() *slowWriter {
+	return &slowWriter{}
+}
+
+func (writer *slowWriter) Write(p []byte) (n int, err error) {
+	time.Sleep(100 * time.Minute)
+	return 0, nil
 }

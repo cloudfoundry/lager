@@ -7,6 +7,19 @@ import (
 	"sync"
 )
 
+type TestLogger struct {
+	Logger
+	*TestSink
+}
+
+func NewTestLogger(component string) *TestLogger {
+	logger := NewLogger(component)
+	testSink := NewTestSink()
+	logger.RegisterSink(testSink)
+
+	return &TestLogger{logger, testSink}
+}
+
 type TestSink struct {
 	contents []byte
 	lock     *sync.Mutex

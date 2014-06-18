@@ -11,7 +11,7 @@ const (
 	FATAL
 )
 
-type Data map[string]string
+type Data map[string]interface{}
 
 type LogFormat struct {
 	Timestamp string   `json:"timestamp"`

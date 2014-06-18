@@ -20,7 +20,10 @@ var _ = Describe("Logger", func() {
 	var task = "my-task"
 	var action = "my-action"
 	var description = "my-description"
-	var logData = lager.Data{"foo": "bar"}
+	var logData = lager.Data{
+		"foo":      "bar",
+		"a-number": 7,
+	}
 	var logs []lager.LogFormat
 
 	BeforeEach(func() {
@@ -62,6 +65,7 @@ var _ = Describe("Logger", func() {
 
 		It("data contains custom user data", func() {
 			Ω(log.Data["foo"]).Should(Equal("bar"))
+			Ω(log.Data["a-number"]).Should(BeNumerically("==", 7))
 		})
 	}
 

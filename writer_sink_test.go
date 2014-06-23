@@ -3,7 +3,6 @@ package lager_test
 import (
 	"runtime"
 	"sync"
-	"time"
 
 	"github.com/pivotal-golang/lager"
 
@@ -26,12 +25,6 @@ var _ = Describe("WriterSink", func() {
 		sink = lager.NewWriterSink(writer, lager.INFO)
 	})
 
-	JustBeforeEach(func() {
-		// logs are written in a background thread with no confirmation,
-		// so we must wait a bit to ensure any final writes are made
-		time.Sleep(10 * time.Millisecond)
-	})
-
 	Context("when logging above the minimum log level", func() {
 		BeforeEach(func() {
 			sink.Log(lager.INFO, []byte("hello world"))
@@ -49,21 +42,6 @@ var _ = Describe("WriterSink", func() {
 
 		It("does not write to the given writer", func() {
 			Ω(writer.Copy()).Should(Equal([]byte{}))
-		})
-	})
-
-	Context("when the writer attached to the sink is writing very slowly", func() {
-		BeforeEach(func() {
-			slowWriter := NewSlowWriter()
-			sink = lager.NewWriterSink(slowWriter, lager.INFO)
-		})
-
-		It("should not block on calls to sink.Log", func(done Done) {
-			for i := 0; i < 1024*2; i++ {
-				sink.Log(lager.INFO, []byte("hello world"))
-			}
-
-			close(done)
 		})
 	})
 
@@ -123,16 +101,4 @@ func (writer *copyWriter) Copy() []byte {
 	contents := make([]byte, len(writer.contents))
 	copy(contents, writer.contents)
 	return contents
-}
-
-type slowWriter struct {
-}
-
-func NewSlowWriter() *slowWriter {
-	return &slowWriter{}
-}
-
-func (writer *slowWriter) Write(p []byte) (n int, err error) {
-	time.Sleep(100 * time.Minute)
-	return 0, nil
 }

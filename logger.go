@@ -126,8 +126,6 @@ func (l *logger) Fatal(task, action, description string, err error, data ...Data
 		sink.Log(FATAL, log.ToJSON())
 	}
 
-	//give the logs a chance to flush
-	time.Sleep(10 * time.Millisecond)
 	panic(err)
 }
 

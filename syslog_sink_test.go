@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"time"
+
 	. "github.com/pivotal-golang/lager"
 
 	. "github.com/onsi/ginkgo"
@@ -16,12 +17,15 @@ func runStreamSyslog(slow bool, listener net.Listener, results chan<- string) {
 	for {
 		var connection net.Conn
 		var err error
+
 		if connection, err = listener.Accept(); err != nil {
 			return
 		}
+
 		if slow {
-			time.Sleep(100 * time.Minute)
+			time.Sleep(time.Second)
 		}
+
 		go func(connection net.Conn) {
 			connection.SetReadDeadline(time.Now().Add(5 * time.Second))
 			buffer := bufio.NewReader(connection)
@@ -140,14 +144,14 @@ var _ = Describe("SyslogSink", func() {
 			for i := 0; i < 1000000; i++ { //do this alot to fill the buffer deep in the bowels of syslog
 				sink.Log(INFO, []byte("hello"))
 			}
+
 			close(done)
-		})
+		}, 5)
 	})
 
 	Context("with no server", func() {
 		It("should return an error, but not get stuck", func() {
-			var err error
-			sink, err = NewSyslogSink("tcp", "127.0.0.1:12382", "my-tag", INFO)
+			_, err := NewSyslogSink("tcp", "127.0.0.1:12382", "my-tag", INFO)
 			Ω(err).Should(HaveOccurred())
 		})
 	})

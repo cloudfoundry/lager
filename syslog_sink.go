@@ -1,6 +1,9 @@
 package lager
 
-import "log/syslog"
+import (
+	"log/syslog"
+	"sync"
+)
 
 type syslogPayload struct {
 	level   LogLevel
@@ -11,6 +14,7 @@ type syslogSink struct {
 	minLogLevel LogLevel
 	writer      *syslog.Writer
 	logChan     chan syslogPayload
+	flush       *sync.WaitGroup
 }
 
 func NewSyslogSink(transport, serverAddress, tag string, minLogLevel LogLevel) (Sink, error) {
@@ -18,10 +22,12 @@ func NewSyslogSink(transport, serverAddress, tag string, minLogLevel LogLevel) (
 	if err != nil {
 		return nil, err
 	}
+
 	sink := &syslogSink{
 		minLogLevel: minLogLevel,
 		writer:      writer,
 		logChan:     make(chan syslogPayload, logBufferSize), //no buffer as the underlying sylog pipe is buffered
+		flush:       new(sync.WaitGroup),
 	}
 
 	go sink.listen()
@@ -43,19 +49,30 @@ func (sink *syslogSink) listen() {
 		case FATAL:
 			sink.writer.Crit(string(payload.payload))
 		}
+
+		sink.flush.Done()
 	}
+}
+
+func (sink *syslogSink) Flush() {
+	sink.flush.Wait()
 }
 
 func (sink *syslogSink) Log(level LogLevel, log []byte) {
 	if level < sink.minLogLevel {
 		return
 	}
+
 	payload := syslogPayload{
 		level:   level,
 		payload: string(log),
 	}
+
+	sink.flush.Add(1)
+
 	select {
 	case sink.logChan <- payload:
 	default:
+		sink.flush.Done()
 	}
 }

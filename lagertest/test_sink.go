@@ -1,4 +1,4 @@
-package lager
+package lagertest
 
 import (
 	"bytes"
@@ -6,20 +6,22 @@ import (
 	"io"
 
 	"github.com/onsi/gomega/gbytes"
+
+	"github.com/pivotal-golang/lager"
 )
 
 type TestLogger struct {
-	Logger
+	lager.Logger
 	*TestSink
 }
 
 type TestSink struct {
-	Sink
+	lager.Sink
 	*gbytes.Buffer
 }
 
 func NewTestLogger(component string) *TestLogger {
-	logger := NewLogger(component)
+	logger := lager.NewLogger(component)
 
 	testSink := NewTestSink()
 
@@ -32,17 +34,17 @@ func NewTestSink() *TestSink {
 	buffer := gbytes.NewBuffer()
 
 	return &TestSink{
-		Sink:   NewWriterSink(buffer, DEBUG),
+		Sink:   lager.NewWriterSink(buffer, lager.DEBUG),
 		Buffer: buffer,
 	}
 }
 
-func (s *TestSink) Logs() []LogFormat {
-	logs := []LogFormat{}
+func (s *TestSink) Logs() []lager.LogFormat {
+	logs := []lager.LogFormat{}
 
 	decoder := json.NewDecoder(bytes.NewBuffer(s.Buffer.Contents()))
 	for {
-		var log LogFormat
+		var log lager.LogFormat
 		if err := decoder.Decode(&log); err == io.EOF {
 			return logs
 		} else if err != nil {

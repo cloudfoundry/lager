@@ -10,6 +10,7 @@ const STACK_TRACE_BUFFER_SIZE = 1024 * 100
 
 type Logger interface {
 	RegisterSink(Sink)
+	Flush()
 	Debug(task, action, description string, data ...Data)
 	Info(task, action, description string, data ...Data)
 	Error(task, action, description string, err error, data ...Data)
@@ -30,6 +31,12 @@ func NewLogger(component string) Logger {
 
 func (l *logger) RegisterSink(sink Sink) {
 	l.sinks = append(l.sinks, sink)
+}
+
+func (l *logger) Flush() {
+	for _, sink := range l.sinks {
+		sink.Flush()
+	}
 }
 
 func (l *logger) Debug(task, action, description string, data ...Data) {

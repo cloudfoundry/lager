@@ -65,6 +65,16 @@ var _ = Describe("WriterSink", func() {
 
 			close(done)
 		})
+
+		It("waits for it when flushing", func() {
+			sink.Log(lager.INFO, []byte("hello world"))
+
+			t1 := time.Now()
+
+			sink.Flush()
+
+			Ω(time.Now().Sub(t1)).Should(BeNumerically(">", 500 * time.Millisecond))
+		})
 	})
 
 	Context("when logging from multiple threads", func() {
@@ -133,6 +143,6 @@ func NewSlowWriter() *slowWriter {
 }
 
 func (writer *slowWriter) Write(p []byte) (n int, err error) {
-	time.Sleep(100 * time.Minute)
+	time.Sleep(1 * time.Second)
 	return 0, nil
 }

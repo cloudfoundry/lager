@@ -23,6 +23,7 @@ func NewTestLogger(component string) *TestLogger {
 type TestSink struct {
 	contents []byte
 	lock     *sync.Mutex
+	flushed  int
 }
 
 func NewTestSink() *TestSink {
@@ -36,6 +37,20 @@ func (l *TestSink) Log(level LogLevel, p []byte) {
 	defer l.lock.Unlock()
 
 	l.contents = append(l.contents, p...)
+}
+
+func (l *TestSink) Flush() {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
+	l.flushed++
+}
+
+func (l *TestSink) Flushed() int {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+
+	return l.flushed
 }
 
 func (l *TestSink) Buffer() *bytes.Buffer {

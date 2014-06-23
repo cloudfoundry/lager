@@ -1,6 +1,9 @@
 package lager
 
-import "io"
+import (
+	"io"
+	"sync"
+)
 
 const logBufferSize = 1024
 
@@ -14,26 +17,14 @@ type Sink interface {
 type writerSink struct {
 	writer      io.Writer
 	minLogLevel LogLevel
-	logChan     chan []byte
+	writeL      *sync.Mutex
 }
 
 func NewWriterSink(writer io.Writer, minLogLevel LogLevel) Sink {
-	sink := &writerSink{
+	return &writerSink{
 		writer:      writer,
 		minLogLevel: minLogLevel,
-		logChan:     make(chan []byte, logBufferSize),
-	}
-
-	go sink.listen()
-
-	return sink
-}
-
-func (sink *writerSink) listen() {
-	for {
-		log := <-sink.logChan
-		sink.writer.Write(log)
-		sink.writer.Write([]byte("\n"))
+		writeL:      new(sync.Mutex),
 	}
 }
 
@@ -41,8 +32,9 @@ func (sink *writerSink) Log(level LogLevel, log []byte) {
 	if level < sink.minLogLevel {
 		return
 	}
-	select {
-	case sink.logChan <- log:
-	default:
-	}
+
+	sink.writeL.Lock()
+	sink.writer.Write(log)
+	sink.writer.Write([]byte("\n"))
+	sink.writeL.Unlock()
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"time"
+
 	"github.com/pivotal-golang/lager"
 	. "github.com/pivotal-golang/lager/chug"
 
@@ -42,7 +43,7 @@ var _ = Describe("Chug", func() {
 			Ω(entry.Log).Should(MatchLogEntry(LogEntry{
 				LogLevel: lager.DEBUG,
 				Source:   "chug-test",
-				Action:   "chug",
+				Message:  "chug",
 				Data:     data,
 			}))
 
@@ -51,7 +52,7 @@ var _ = Describe("Chug", func() {
 			Ω(entry.Log).Should(MatchLogEntry(LogEntry{
 				LogLevel: lager.INFO,
 				Source:   "chug-test",
-				Action:   "again",
+				Message:  "again",
 				Data:     data,
 			}))
 		})
@@ -69,7 +70,7 @@ var _ = Describe("Chug", func() {
 				Ω((<-stream).Log).Should(MatchLogEntry(LogEntry{
 					LogLevel: lager.ERROR,
 					Source:   "chug-test",
-					Action:   "chug",
+					Message:  "chug",
 					Error:    errors.New("some-error"),
 					Data:     lager.Data{"some-float": 3.0, "some-string": "foo"},
 				}))
@@ -90,54 +91,41 @@ var _ = Describe("Chug", func() {
 				Ω((<-stream).Log).Should(MatchLogEntry(LogEntry{
 					LogLevel: lager.INFO,
 					Source:   "chug-test",
-					Tasks: []Task{
-						{"first-session", "1"},
-					},
-					Action: "encabulate",
-					Data:   lager.Data{},
+					Message:  "first-session.encabulate",
+					Session:  "1",
+					Data:     lager.Data{},
 				}))
 
 				Ω((<-stream).Log).Should(MatchLogEntry(LogEntry{
 					LogLevel: lager.INFO,
 					Source:   "chug-test",
-					Tasks: []Task{
-						{"first-session", "1"},
-						{"nested-session-1", "1"},
-					},
-					Action: "baconize",
-					Data:   lager.Data{},
+					Message:  "first-session.nested-session-1.baconize",
+					Session:  "1.1",
+					Data:     lager.Data{},
 				}))
 
 				Ω((<-stream).Log).Should(MatchLogEntry(LogEntry{
 					LogLevel: lager.INFO,
 					Source:   "chug-test",
-					Tasks: []Task{
-						{"first-session", "1"},
-					},
-					Action: "remodulate",
-					Data:   lager.Data{},
+					Message:  "first-session.remodulate",
+					Session:  "1",
+					Data:     lager.Data{},
 				}))
 
 				Ω((<-stream).Log).Should(MatchLogEntry(LogEntry{
 					LogLevel: lager.INFO,
 					Source:   "chug-test",
-					Tasks: []Task{
-						{"first-session", "1"},
-						{"nested-session-1", "1"},
-					},
-					Action: "ergonomize",
-					Data:   lager.Data{},
+					Message:  "first-session.nested-session-1.ergonomize",
+					Session:  "1.1",
+					Data:     lager.Data{},
 				}))
 
 				Ω((<-stream).Log).Should(MatchLogEntry(LogEntry{
 					LogLevel: lager.INFO,
 					Source:   "chug-test",
-					Tasks: []Task{
-						{"first-session", "1"},
-						{"nested-session-2", "2"},
-					},
-					Action: "modernify",
-					Data:   lager.Data{},
+					Message:  "first-session.nested-session-2.modernify",
+					Session:  "1.2",
+					Data:     lager.Data{},
 				}))
 			})
 		})
@@ -223,22 +211,6 @@ var _ = Describe("Chug", func() {
 			Context("when there aren't enough message components", func() {
 				BeforeEach(func() {
 					input = []byte(`{"timestamp":"1407102779.028711081","source":"chug-test","message":"chug-test","log_level":1,"data":{}}`)
-				})
-
-				itReturnsRawData()
-			})
-
-			Context("when there are two components but the session is not empty", func() {
-				BeforeEach(func() {
-					input = []byte(`{"timestamp":"1407102779.028711081","source":"chug-test","message":"chug-test.chug","log_level":1,"data":{"session":"0"}}`)
-				})
-
-				itReturnsRawData()
-			})
-
-			Context("when there are more than two components, but the number of session components does not match", func() {
-				BeforeEach(func() {
-					input = []byte(`{"timestamp":"1407102779.028711081","source":"chug-test","message":"chug-test.chug.chug.chug","log_level":1,"data":{"session":"0"}}`)
 				})
 
 				itReturnsRawData()

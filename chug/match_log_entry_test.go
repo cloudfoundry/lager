@@ -25,8 +25,8 @@ func (m *logEntryMatcher) Match(actual interface{}) (success bool, err error) {
 
 	return m.entry.LogLevel == actualEntry.LogLevel &&
 		m.entry.Source == actualEntry.Source &&
-		reflect.DeepEqual(m.entry.Tasks, actualEntry.Tasks) &&
-		m.entry.Action == actualEntry.Action &&
+		m.entry.Message == actualEntry.Message &&
+		m.entry.Session == actualEntry.Session &&
 		reflect.DeepEqual(m.entry.Error, actualEntry.Error) &&
 		m.entry.Trace == actualEntry.Trace &&
 		reflect.DeepEqual(m.entry.Data, actualEntry.Data), nil

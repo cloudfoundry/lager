@@ -18,6 +18,20 @@ type Entry struct {
 	Log     LogEntry
 }
 
+type LogEntry struct {
+	Timestamp time.Time
+	LogLevel  lager.LogLevel
+
+	Source  string
+	Message string
+	Session string
+
+	Error error
+	Trace string
+
+	Data lager.Data
+}
+
 func Chug(reader io.Reader, out chan<- Entry) {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
@@ -79,10 +93,10 @@ func convertLagerLog(lagerLog lager.LogFormat) (LogEntry, bool) {
 		delete(lagerLog.Data, "trace")
 	}
 
-	var logJoinedSession string
+	var logSession string
 	dataSession, ok := lagerLog.Data["session"]
 	if ok {
-		logJoinedSession, ok = dataSession.(string)
+		logSession, ok = dataSession.(string)
 		if !ok {
 			return LogEntry{}, false
 		}
@@ -90,38 +104,19 @@ func convertLagerLog(lagerLog lager.LogFormat) (LogEntry, bool) {
 	}
 
 	messageComponents := strings.Split(lagerLog.Message, ".")
-	sessionComponents := strings.Split(logJoinedSession, ".")
-
-	var logAction string
-	var logTasks []Task
 
 	n := len(messageComponents)
-	switch {
-	case n <= 1:
+	if n <= 1 {
 		return LogEntry{}, false
-	case n == 2:
-		if logJoinedSession != "" {
-			return LogEntry{}, false
-		}
-		logAction = messageComponents[len(messageComponents)-1]
-	default:
-		if len(messageComponents)-2 != len(sessionComponents) {
-			return LogEntry{}, false
-		}
-		messageComponents = messageComponents[1:]
-		logAction = messageComponents[len(messageComponents)-1]
-		for i, session := range sessionComponents {
-			logTasks = append(logTasks, Task{messageComponents[i], session})
-		}
 	}
+	logMessage := strings.Join(messageComponents[1:], ".")
 
 	return LogEntry{
 		Timestamp: time.Unix(0, int64(timestamp*1e9)),
 		LogLevel:  lagerLog.LogLevel,
 		Source:    lagerLog.Source,
-
-		Action: logAction,
-		Tasks:  logTasks,
+		Message:   logMessage,
+		Session:   logSession,
 
 		Error: logErr,
 		Trace: logTrace,

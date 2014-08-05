@@ -30,6 +30,7 @@ var _ = Describe("Chug", func() {
 
 	AfterEach(func() {
 		pipeWriter.Close()
+		Eventually(stream).Should(BeClosed())
 	})
 
 	Context("when fed a stream of well-formed lager messages", func() {

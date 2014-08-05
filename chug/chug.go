@@ -37,6 +37,7 @@ func Chug(reader io.Reader, out chan<- Entry) {
 	for scanner.Scan() {
 		out <- entry(scanner.Bytes())
 	}
+	close(out)
 }
 
 func entry(raw []byte) (entry Entry) {

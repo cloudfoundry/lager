@@ -47,87 +47,107 @@ func New(writer io.Writer) *GinkgoReporter {
 	logger := lager.NewLogger("ginkgo")
 	logger.RegisterSink(lager.NewWriterSink(writer, lager.DEBUG))
 	return &GinkgoReporter{
+		writer: writer,
 		logger: logger,
 	}
 }
 
 type GinkgoReporter struct {
 	logger  lager.Logger
+	writer  io.Writer
 	session lager.Logger
 }
 
+func (g *GinkgoReporter) wrappedWithNewlines(f func()) {
+	g.writer.Write([]byte("\n"))
+	f()
+	g.writer.Write([]byte("\n"))
+}
+
 func (g *GinkgoReporter) SpecSuiteWillBegin(config config.GinkgoConfigType, summary *types.SuiteSummary) {
-	g.logger.Info("start-suite", lager.Data{
-		"summary": SuiteStartSummary{
-			RandomSeed:                 config.RandomSeed,
-			SuiteDescription:           summary.SuiteDescription,
-			NumberOfSpecsThatWillBeRun: summary.NumberOfSpecsThatWillBeRun,
-		},
+	g.wrappedWithNewlines(func() {
+		g.logger.Info("start-suite", lager.Data{
+			"summary": SuiteStartSummary{
+				RandomSeed:                 config.RandomSeed,
+				SuiteDescription:           summary.SuiteDescription,
+				NumberOfSpecsThatWillBeRun: summary.NumberOfSpecsThatWillBeRun,
+			},
+		})
 	})
 }
 
 func (g *GinkgoReporter) BeforeSuiteDidRun(setupSummary *types.SetupSummary) {
-	g.announceSetupSummary("before-suite", "BeforeSuite", setupSummary)
+	g.wrappedWithNewlines(func() {
+		g.announceSetupSummary("before-suite", "BeforeSuite", setupSummary)
+	})
 }
 
 func (g *GinkgoReporter) SpecWillRun(specSummary *types.SpecSummary) {
-	g.session = g.logger.Session("spec")
-	g.session.Info("start", lager.Data{
-		"summary": SpecSummary{
-			Name:     specSummary.ComponentTexts,
-			Location: specSummary.ComponentCodeLocations[len(specSummary.ComponentTexts)-1].String(),
-		},
+	g.wrappedWithNewlines(func() {
+		g.session = g.logger.Session("spec")
+		g.session.Info("start", lager.Data{
+			"summary": SpecSummary{
+				Name:     specSummary.ComponentTexts,
+				Location: specSummary.ComponentCodeLocations[len(specSummary.ComponentTexts)-1].String(),
+			},
+		})
 	})
 }
 
 func (g *GinkgoReporter) SpecDidComplete(specSummary *types.SpecSummary) {
-	if g.session == nil {
-		return
-	}
-	summary := SpecSummary{
-		Name:     specSummary.ComponentTexts,
-		Location: specSummary.ComponentCodeLocations[len(specSummary.ComponentTexts)-1].String(),
-		State:    stateAsString(specSummary.State),
-		Passed:   passed(specSummary.State),
-		RunTime:  specSummary.RunTime,
-	}
+	g.wrappedWithNewlines(func() {
+		if g.session == nil {
+			return
+		}
+		summary := SpecSummary{
+			Name:     specSummary.ComponentTexts,
+			Location: specSummary.ComponentCodeLocations[len(specSummary.ComponentTexts)-1].String(),
+			State:    stateAsString(specSummary.State),
+			Passed:   passed(specSummary.State),
+			RunTime:  specSummary.RunTime,
+		}
 
-	if passed(specSummary.State) {
-		g.session.Info("end", lager.Data{
-			"summary": summary,
-		})
-	} else {
-		summary.StackTrace = specSummary.Failure.Location.FullStackTrace
-		g.session.Error("end", errorForFailure(specSummary.Failure), lager.Data{
-			"summary": summary,
-		})
-	}
-	g.session = nil
+		if passed(specSummary.State) {
+			g.session.Info("end", lager.Data{
+				"summary": summary,
+			})
+		} else {
+			summary.StackTrace = specSummary.Failure.Location.FullStackTrace
+			g.session.Error("end", errorForFailure(specSummary.Failure), lager.Data{
+				"summary": summary,
+			})
+		}
+		g.session = nil
+	})
 }
 
 func (g *GinkgoReporter) AfterSuiteDidRun(setupSummary *types.SetupSummary) {
-	g.announceSetupSummary("after-suite", "AfterSuite", setupSummary)
+	g.wrappedWithNewlines(func() {
+		g.announceSetupSummary("after-suite", "AfterSuite", setupSummary)
+	})
 }
 
 func (g *GinkgoReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
-	data := lager.Data{
-		"summary": SuiteEndSummary{
-			SuiteDescription: summary.SuiteDescription,
-			Passed:           summary.SuiteSucceeded,
-			NumberOfSpecsThatWillBeRun: summary.NumberOfSpecsThatWillBeRun,
-			NumberOfPassedSpecs:        summary.NumberOfPassedSpecs,
-			NumberOfFailedSpecs:        summary.NumberOfFailedSpecs,
-		},
-	}
-	if summary.SuiteSucceeded {
-		g.logger.Info("end-suite", data)
-	} else {
-		g.logger.Error(
-			"end-suite",
-			fmt.Errorf("%d/%d specs failed", summary.NumberOfFailedSpecs, summary.NumberOfSpecsThatWillBeRun),
-			data,
-		)
-	}
+	g.wrappedWithNewlines(func() {
+		data := lager.Data{
+			"summary": SuiteEndSummary{
+				SuiteDescription: summary.SuiteDescription,
+				Passed:           summary.SuiteSucceeded,
+				NumberOfSpecsThatWillBeRun: summary.NumberOfSpecsThatWillBeRun,
+				NumberOfPassedSpecs:        summary.NumberOfPassedSpecs,
+				NumberOfFailedSpecs:        summary.NumberOfFailedSpecs,
+			},
+		}
+		if summary.SuiteSucceeded {
+			g.logger.Info("end-suite", data)
+		} else {
+			g.logger.Error(
+				"end-suite",
+				fmt.Errorf("%d/%d specs failed", summary.NumberOfFailedSpecs, summary.NumberOfSpecsThatWillBeRun),
+				data,
+			)
+		}
+	})
 }
 
 func (g *GinkgoReporter) announceSetupSummary(componentType string, name string, setupSummary *types.SetupSummary) {

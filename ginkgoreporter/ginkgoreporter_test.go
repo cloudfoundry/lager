@@ -32,8 +32,9 @@ var _ = Describe("Ginkgoreporter", func() {
 		chug.Chug(buffer, out)
 		logs := []chug.LogEntry{}
 		for entry := range out {
-			Ω(entry.IsLager).Should(BeTrue())
-			logs = append(logs, entry.Log)
+			if entry.IsLager {
+				logs = append(logs, entry.Log)
+			}
 		}
 		return logs
 	}

@@ -48,107 +48,6 @@ var _ = Describe("Ginkgoreporter", func() {
 		return out
 	}
 
-	Describe("Announcing the beginning of the suite", func() {
-		It("should announce that the suite will begin", func() {
-			configType := config.GinkgoConfigType{
-				RandomSeed:    1138,
-				ParallelTotal: 1,
-				ParallelNode:  1,
-			}
-			suiteSummary := &types.SuiteSummary{
-				SuiteDescription:           "some description",
-				NumberOfSpecsThatWillBeRun: 17,
-			}
-
-			reporter.SpecSuiteWillBegin(configType, suiteSummary)
-			logs := fetchLogs()[0]
-			Ω(logs.LogLevel).Should(Equal(lager.INFO))
-			Ω(logs.Source).Should(Equal("ginkgo"))
-			Ω(logs.Message).Should(Equal("start-suite"))
-			Ω(logs.Session).Should(BeZero())
-			Ω(logs.Data["summary"]).Should(Equal(jsonRoundTrip(SuiteStartSummary{
-				RandomSeed:                 1138,
-				SuiteDescription:           "some description",
-				NumberOfSpecsThatWillBeRun: 17,
-			})))
-		})
-
-		Context("when the suite is running in parallel", func() {
-			It("should set the session to the node number", func() {
-				configType := config.GinkgoConfigType{
-					ParallelTotal: 3,
-					ParallelNode:  2,
-				}
-				suiteSummary := &types.SuiteSummary{
-					SuiteDescription:           "some description",
-					NumberOfSpecsThatWillBeRun: 17,
-				}
-				reporter.SpecSuiteWillBegin(configType, suiteSummary)
-				logs := fetchLogs()[0]
-				Ω(logs.Message).Should(Equal("node-2.start-suite"))
-				Ω(logs.Session).Should(Equal("2"))
-			})
-		})
-	})
-
-	Describe("Announcing the end of the suite", func() {
-		var suiteSummary *types.SuiteSummary
-		BeforeEach(func() {
-			suiteSummary = &types.SuiteSummary{
-				SuiteDescription:           "some description",
-				NumberOfSpecsThatWillBeRun: 17,
-			}
-		})
-
-		Context("when the suite succeeds", func() {
-			BeforeEach(func() {
-				suiteSummary.SuiteSucceeded = true
-				suiteSummary.NumberOfPassedSpecs = 17
-			})
-
-			It("should info", func() {
-				reporter.SpecSuiteDidEnd(suiteSummary)
-				logs := fetchLogs()[0]
-				Ω(logs.LogLevel).Should(Equal(lager.INFO))
-				Ω(logs.Source).Should(Equal("ginkgo"))
-				Ω(logs.Message).Should(Equal("end-suite"))
-				Ω(logs.Session).Should(BeZero())
-				Ω(logs.Data["summary"]).Should(Equal(jsonRoundTrip(SuiteEndSummary{
-					SuiteDescription: "some description",
-					Passed:           true,
-					NumberOfSpecsThatWillBeRun: 17,
-					NumberOfPassedSpecs:        17,
-					NumberOfFailedSpecs:        0,
-				})))
-			})
-		})
-
-		Context("when the suite fails", func() {
-			BeforeEach(func() {
-				suiteSummary.SuiteSucceeded = false
-				suiteSummary.NumberOfPassedSpecs = 10
-				suiteSummary.NumberOfFailedSpecs = 7
-			})
-
-			It("should error", func() {
-				reporter.SpecSuiteDidEnd(suiteSummary)
-				logs := fetchLogs()[0]
-				Ω(logs.LogLevel).Should(Equal(lager.ERROR))
-				Ω(logs.Source).Should(Equal("ginkgo"))
-				Ω(logs.Message).Should(Equal("end-suite"))
-				Ω(logs.Error.Error()).Should(Equal("7/17 specs failed"))
-				Ω(logs.Session).Should(BeZero())
-				Ω(logs.Data["summary"]).Should(Equal(jsonRoundTrip(SuiteEndSummary{
-					SuiteDescription: "some description",
-					Passed:           false,
-					NumberOfSpecsThatWillBeRun: 17,
-					NumberOfPassedSpecs:        10,
-					NumberOfFailedSpecs:        7,
-				})))
-			})
-		})
-	})
-
 	Describe("Announcing specs", func() {
 		var summary *types.SpecSummary
 		BeforeEach(func() {
@@ -169,6 +68,32 @@ var _ = Describe("Ginkgoreporter", func() {
 				RunTime: time.Minute,
 				State:   types.SpecStatePassed,
 			}
+		})
+
+		Context("when running in parallel", func() {
+			It("should include the node # in the session and message", func() {
+				configType := config.GinkgoConfigType{
+					ParallelTotal: 3,
+					ParallelNode:  2,
+				}
+				suiteSummary := &types.SuiteSummary{}
+				reporter.SpecSuiteWillBegin(configType, suiteSummary)
+
+				reporter.SpecWillRun(summary)
+				reporter.SpecDidComplete(summary)
+				reporter.SpecWillRun(summary)
+				reporter.SpecDidComplete(summary)
+
+				logs := fetchLogs()
+				Ω(logs[0].Session).Should(Equal("2.1"))
+				Ω(logs[0].Message).Should(Equal("node-2.spec.start"))
+				Ω(logs[1].Session).Should(Equal("2.1"))
+				Ω(logs[1].Message).Should(Equal("node-2.spec.end"))
+				Ω(logs[2].Session).Should(Equal("2.2"))
+				Ω(logs[0].Message).Should(Equal("node-2.spec.start"))
+				Ω(logs[3].Session).Should(Equal("2.2"))
+				Ω(logs[1].Message).Should(Equal("node-2.spec.end"))
+			})
 		})
 
 		Describe("incrementing sessions", func() {
@@ -253,88 +178,5 @@ var _ = Describe("Ginkgoreporter", func() {
 				})
 			})
 		})
-	})
-
-	Describe("Announcing BeforeSuite and AfterSuite", func() {
-		setupSummarySpecs := []struct {
-			method  func(reporter reporters.Reporter, setupSummary *types.SetupSummary)
-			message string
-			name    string
-		}{
-			{
-				reporters.Reporter.BeforeSuiteDidRun,
-				"before-suite",
-				"BeforeSuite",
-			},
-			{
-				reporters.Reporter.AfterSuiteDidRun,
-				"after-suite",
-				"AfterSuite",
-			},
-		}
-
-		for _, setupSummarySpec := range setupSummarySpecs {
-			Describe("Announcing "+setupSummarySpec.name, func() {
-				var setupSummary *types.SetupSummary
-
-				BeforeEach(func() {
-					setupSummary = &types.SetupSummary{
-						RunTime:        time.Minute,
-						CapturedOutput: "foo",
-						SuiteID:        "baz",
-					}
-				})
-
-				Context("when "+setupSummarySpec.name+" succeeds", func() {
-					BeforeEach(func() {
-						setupSummary.State = types.SpecStatePassed
-					})
-
-					It("should info", func() {
-						setupSummarySpec.method(reporter, setupSummary)
-						logs := fetchLogs()[0]
-						Ω(logs.LogLevel).Should(Equal(lager.INFO))
-						Ω(logs.Message).Should(Equal(setupSummarySpec.message))
-						Ω(logs.Session).Should(BeZero())
-						Ω(logs.Data["summary"]).Should(Equal(jsonRoundTrip(SetupSummary{
-							Name:    setupSummarySpec.name,
-							State:   "PASSED",
-							Passed:  true,
-							RunTime: time.Minute,
-						})))
-					})
-				})
-
-				Context("when "+setupSummarySpec.name+" fails", func() {
-					BeforeEach(func() {
-						setupSummary.State = types.SpecStateFailed
-						setupSummary.Failure = types.SpecFailure{
-							Message: "something failed!",
-							Location: types.CodeLocation{
-								FileName:       "some/file",
-								LineNumber:     3,
-								FullStackTrace: "some-stack-trace",
-							},
-						}
-					})
-
-					It("should error", func() {
-						setupSummarySpec.method(reporter, setupSummary)
-						logs := fetchLogs()[0]
-						Ω(logs.LogLevel).Should(Equal(lager.ERROR))
-						Ω(logs.Message).Should(Equal(setupSummarySpec.message))
-						Ω(logs.Session).Should(BeZero())
-						Ω(logs.Error.Error()).Should(Equal("something failed!\nsome/file:3"))
-						Ω(logs.Data["summary"]).Should(Equal(jsonRoundTrip(SetupSummary{
-							Name:       setupSummarySpec.name,
-							State:      "FAILED",
-							Passed:     false,
-							RunTime:    time.Minute,
-							StackTrace: "some-stack-trace",
-						})))
-					})
-				})
-			})
-		}
 	})
 })

@@ -72,21 +72,9 @@ func (g *GinkgoReporter) SpecSuiteWillBegin(config config.GinkgoConfigType, summ
 		}
 		g.logger = session
 	}
-	g.wrappedWithNewlines(func() {
-		g.logger.Info("start-suite", lager.Data{
-			"summary": SuiteStartSummary{
-				RandomSeed:                 config.RandomSeed,
-				SuiteDescription:           summary.SuiteDescription,
-				NumberOfSpecsThatWillBeRun: summary.NumberOfSpecsThatWillBeRun,
-			},
-		})
-	})
 }
 
 func (g *GinkgoReporter) BeforeSuiteDidRun(setupSummary *types.SetupSummary) {
-	g.wrappedWithNewlines(func() {
-		g.announceSetupSummary("before-suite", "BeforeSuite", setupSummary)
-	})
 }
 
 func (g *GinkgoReporter) SpecWillRun(specSummary *types.SpecSummary) {
@@ -129,51 +117,9 @@ func (g *GinkgoReporter) SpecDidComplete(specSummary *types.SpecSummary) {
 }
 
 func (g *GinkgoReporter) AfterSuiteDidRun(setupSummary *types.SetupSummary) {
-	g.wrappedWithNewlines(func() {
-		g.announceSetupSummary("after-suite", "AfterSuite", setupSummary)
-	})
 }
 
 func (g *GinkgoReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
-	g.wrappedWithNewlines(func() {
-		data := lager.Data{
-			"summary": SuiteEndSummary{
-				SuiteDescription: summary.SuiteDescription,
-				Passed:           summary.SuiteSucceeded,
-				NumberOfSpecsThatWillBeRun: summary.NumberOfSpecsThatWillBeRun,
-				NumberOfPassedSpecs:        summary.NumberOfPassedSpecs,
-				NumberOfFailedSpecs:        summary.NumberOfFailedSpecs,
-			},
-		}
-		if summary.SuiteSucceeded {
-			g.logger.Info("end-suite", data)
-		} else {
-			g.logger.Error(
-				"end-suite",
-				fmt.Errorf("%d/%d specs failed", summary.NumberOfFailedSpecs, summary.NumberOfSpecsThatWillBeRun),
-				data,
-			)
-		}
-	})
-}
-
-func (g *GinkgoReporter) announceSetupSummary(componentType string, name string, setupSummary *types.SetupSummary) {
-	summary := SetupSummary{
-		Name:    name,
-		State:   stateAsString(setupSummary.State),
-		Passed:  passed(setupSummary.State),
-		RunTime: setupSummary.RunTime,
-	}
-	if passed(setupSummary.State) {
-		g.logger.Info(componentType, lager.Data{
-			"summary": summary,
-		})
-	} else {
-		summary.StackTrace = setupSummary.Failure.Location.FullStackTrace
-		g.logger.Error(componentType, errorForFailure(setupSummary.Failure), lager.Data{
-			"summary": summary,
-		})
-	}
 }
 
 func stateAsString(state types.SpecState) string {

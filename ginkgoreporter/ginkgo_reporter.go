@@ -65,6 +65,13 @@ func (g *GinkgoReporter) wrappedWithNewlines(f func()) {
 }
 
 func (g *GinkgoReporter) SpecSuiteWillBegin(config config.GinkgoConfigType, summary *types.SuiteSummary) {
+	if config.ParallelTotal > 1 {
+		var session = g.logger
+		for i := 0; i < config.ParallelNode; i++ {
+			session = g.logger.Session(fmt.Sprintf("node-%d", i+1))
+		}
+		g.logger = session
+	}
 	g.wrappedWithNewlines(func() {
 		g.logger.Info("start-suite", lager.Data{
 			"summary": SuiteStartSummary{

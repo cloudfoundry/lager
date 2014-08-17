@@ -51,7 +51,9 @@ var _ = Describe("Ginkgoreporter", func() {
 	Describe("Announcing the beginning of the suite", func() {
 		It("should announce that the suite will begin", func() {
 			configType := config.GinkgoConfigType{
-				RandomSeed: 1138,
+				RandomSeed:    1138,
+				ParallelTotal: 1,
+				ParallelNode:  1,
 			}
 			suiteSummary := &types.SuiteSummary{
 				SuiteDescription:           "some description",
@@ -69,6 +71,23 @@ var _ = Describe("Ginkgoreporter", func() {
 				SuiteDescription:           "some description",
 				NumberOfSpecsThatWillBeRun: 17,
 			})))
+		})
+
+		Context("when the suite is running in parallel", func() {
+			It("should set the session to the node number", func() {
+				configType := config.GinkgoConfigType{
+					ParallelTotal: 3,
+					ParallelNode:  2,
+				}
+				suiteSummary := &types.SuiteSummary{
+					SuiteDescription:           "some description",
+					NumberOfSpecsThatWillBeRun: 17,
+				}
+				reporter.SpecSuiteWillBegin(configType, suiteSummary)
+				logs := fetchLogs()[0]
+				Ω(logs.Message).Should(Equal("node-2.start-suite"))
+				Ω(logs.Session).Should(Equal("2"))
+			})
 		})
 	})
 

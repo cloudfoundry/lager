@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega/gbytes"
 
 	"github.com/pivotal-golang/lager"
@@ -24,8 +25,8 @@ func NewTestLogger(component string) *TestLogger {
 	logger := lager.NewLogger(component)
 
 	testSink := NewTestSink()
-
 	logger.RegisterSink(testSink)
+	logger.RegisterSink(lager.NewWriterSink(ginkgo.GinkgoWriter, lager.DEBUG))
 
 	return &TestLogger{logger, testSink}
 }

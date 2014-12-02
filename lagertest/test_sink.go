@@ -56,3 +56,12 @@ func (s *TestSink) Logs() []lager.LogFormat {
 
 	return logs
 }
+
+func (s *TestSink) LogMessages() []string {
+	logs := s.Logs()
+	messages := make([]string, 0, len(logs))
+	for _, log := range logs {
+		messages = append(messages, log.Message)
+	}
+	return messages
+}

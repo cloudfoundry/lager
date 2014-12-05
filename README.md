@@ -14,7 +14,7 @@ import (
   "github.com/pivotal-golang/lager"
 )
 
-logger := logger.New("my-app")
+logger := logger.NewLogger("my-app")
 ```
 
 ### Sinks

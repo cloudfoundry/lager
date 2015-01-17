@@ -154,12 +154,17 @@ func (l *logger) Fatal(action string, err error, data ...Data) {
 
 func (l *logger) baseData(givenData ...Data) Data {
 	data := Data{}
-	if len(givenData) > 0 {
-		data = givenData[0]
-	}
 
 	for k, v := range l.data {
 		data[k] = v
+	}
+
+	if len(givenData) > 0 {
+		for _, dataArg := range givenData {
+			for key, val := range dataArg {
+				data[key] = val
+			}
+		}
 	}
 
 	if l.sessionID != "" {

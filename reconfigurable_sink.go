@@ -29,3 +29,7 @@ func (sink *ReconfigurableSink) Log(level LogLevel, log []byte) {
 func (sink *ReconfigurableSink) SetMinLevel(level LogLevel) {
 	atomic.StoreInt32(&sink.minLogLevel, int32(level))
 }
+
+func (sink *ReconfigurableSink) GetMinLevel() LogLevel {
+	return LogLevel(atomic.LoadInt32(&sink.minLogLevel))
+}

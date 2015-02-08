@@ -22,6 +22,10 @@ var _ = Describe("ReconfigurableSink", func() {
 		sink = lager.NewReconfigurableSink(testSink, lager.INFO)
 	})
 
+	It("returns the current level", func() {
+		Ω(sink.GetMinLevel()).Should(Equal(lager.INFO))
+	})
+
 	Context("when logging above the minimum log level", func() {
 		BeforeEach(func() {
 			sink.Log(lager.INFO, []byte("hello world"))
@@ -50,6 +54,10 @@ var _ = Describe("ReconfigurableSink", func() {
 		It("writes logs above the new log level", func() {
 			sink.Log(lager.DEBUG, []byte("hello world"))
 			Ω(testSink.Buffer()).Should(gbytes.Say("hello world\n"))
+		})
+
+		It("returns the newly updated level", func() {
+			Ω(sink.GetMinLevel()).Should(Equal(lager.DEBUG))
 		})
 	})
 })

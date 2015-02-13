@@ -78,6 +78,20 @@ var _ = Describe("Chug", func() {
 			})
 		})
 
+		Context("when parsing an info message with an error", func() {
+			It("should not take the error out of the data map", func() {
+				data := lager.Data{"some-float": 3.0, "some-string": "foo", "error": "some-error"}
+				logger.Info("chug", data)
+				Ω((<-stream).Log).Should(MatchLogEntry(LogEntry{
+					LogLevel: lager.INFO,
+					Source:   "chug-test",
+					Message:  "chug",
+					Error:    nil,
+					Data:     lager.Data{"some-float": 3.0, "some-string": "foo", "error": "some-error"},
+				}))
+			})
+		})
+
 		Context("when multiple sessions have been established", func() {
 			It("should build up the task array appropriately", func() {
 				firstSession := logger.Session("first-session")

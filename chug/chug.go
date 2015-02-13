@@ -76,14 +76,16 @@ func convertLagerLog(lagerLog lager.LogFormat) (LogEntry, bool) {
 	data := lagerLog.Data
 
 	var logErr error
-	dataErr, ok := lagerLog.Data["error"]
-	if ok {
-		errorString, ok := dataErr.(string)
-		if !ok {
-			return LogEntry{}, false
+	if lagerLog.LogLevel == lager.ERROR || lagerLog.LogLevel == lager.FATAL {
+		dataErr, ok := lagerLog.Data["error"]
+		if ok {
+			errorString, ok := dataErr.(string)
+			if !ok {
+				return LogEntry{}, false
+			}
+			logErr = errors.New(errorString)
+			delete(lagerLog.Data, "error")
 		}
-		logErr = errors.New(errorString)
-		delete(lagerLog.Data, "error")
 	}
 
 	var logTrace string

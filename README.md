@@ -31,7 +31,7 @@ logger.RegisterSink(lager.NewWriterSink(myWriter, lager.INFO))
 Lager supports the usual level-based logging, with an optional argument for arbitrary key-value data.
 
 ```go
-logger.Info("doing-stuff", logger.Data{
+logger.Info("doing-stuff", lager.Data{
   "informative": true,
 })
 ```
@@ -58,7 +58,7 @@ You can avoid repetition of contextual data using 'Sessions':
 
 ```go
 
-contextualLogger := logger.Session("my-task", logger.Data{
+contextualLogger := logger.Session("my-task", lager.Data{
   "request-id": 5,
 })
 

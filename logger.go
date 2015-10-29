@@ -25,7 +25,7 @@ type logger struct {
 	task        string
 	sinks       []Sink
 	sessionID   string
-	nextSession uint64
+	nextSession uint32
 	data        Data
 }
 
@@ -47,7 +47,7 @@ func (l *logger) SessionName() string {
 }
 
 func (l *logger) Session(task string, data ...Data) Logger {
-	sid := atomic.AddUint64(&l.nextSession, 1)
+	sid := atomic.AddUint32(&l.nextSession, 1)
 
 	var sessionIDstr string
 

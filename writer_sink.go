@@ -5,8 +5,6 @@ import (
 	"sync"
 )
 
-const logBufferSize = 1024
-
 // A Sink represents a write destination for a Logger. It provides
 // a thread-safe interface for writing logs
 type Sink interface {

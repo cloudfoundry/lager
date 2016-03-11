@@ -1,7 +1,9 @@
 package lager_test
 
 import (
+	"fmt"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/pivotal-golang/lager"
@@ -27,17 +29,17 @@ var _ = Describe("WriterSink", func() {
 
 	Context("when logging above the minimum log level", func() {
 		BeforeEach(func() {
-			sink.Log(lager.INFO, []byte("hello world"))
+			sink.Log(lager.LogFormat{LogLevel: lager.INFO, Message: "hello world"})
 		})
 
 		It("writes to the given writer", func() {
-			Expect(writer.Copy()).To(Equal([]byte("hello world\n")))
+			Expect(writer.Copy()).To(MatchJSON(`{"message":"hello world","log_level":1,"timestamp":"","source":"","data":null}`))
 		})
 	})
 
 	Context("when logging below the minimum log level", func() {
 		BeforeEach(func() {
-			sink.Log(lager.DEBUG, []byte("hello world"))
+			sink.Log(lager.LogFormat{LogLevel: lager.DEBUG, Message: "hello world"})
 		})
 
 		It("does not write to the given writer", func() {
@@ -53,7 +55,7 @@ var _ = Describe("WriterSink", func() {
 			for i := 0; i < MaxThreads; i++ {
 				wg.Add(1)
 				go func() {
-					sink.Log(lager.INFO, []byte(content))
+					sink.Log(lager.LogFormat{LogLevel: lager.INFO, Message: content})
 					wg.Done()
 				}()
 			}
@@ -61,12 +63,13 @@ var _ = Describe("WriterSink", func() {
 		})
 
 		It("writes to the given writer", func() {
-			expectedBytes := []byte{}
-			for i := 0; i < MaxThreads; i++ {
-				expectedBytes = append(expectedBytes, []byte(content)...)
-				expectedBytes = append(expectedBytes, []byte("\n")...)
+			lines := strings.Split(string(writer.Copy()), "\n")
+			for _, line := range lines {
+				if line == "" {
+					continue
+				}
+				Expect(line).To(MatchJSON(fmt.Sprintf(`{"message":"%s","log_level":1,"timestamp":"","source":"","data":null}`, content)))
 			}
-			Expect(writer.Copy()).To(Equal(expectedBytes))
 		})
 	})
 })

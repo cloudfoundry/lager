@@ -5,19 +5,48 @@ import (
 	"runtime"
 	"sync/atomic"
 	"time"
+
+	"github.com/opentracing/opentracing-go"
 )
 
 const STACK_TRACE_BUFFER_SIZE = 1024 * 100
 
+type Starter interface {
+	Start(task string, data ...Data) Logger
+}
+
 type Logger interface {
-	RegisterSink(Sink)
-	Session(task string, data ...Data) Logger
-	SessionName() string
+	// Log Levels
 	Debug(action string, data ...Data)
 	Info(action string, data ...Data)
 	Error(action string, err error, data ...Data)
 	Fatal(action string, err error, data ...Data)
+
 	WithData(Data) Logger
+
+	// Lifecycle
+	Starter() Starter
+	Succeed(data ...Data)
+	Fail(error,data ...Data)
+
+// Span enables opentracing compliance
+	Span() opentracing.Span
+	String() string
+}
+
+func FromSpan(opentracing.Span)Logger{
+		return nil
+}
+
+func FromHTTPHeaders(http.Headers)Logger{
+	return nil
+}
+
+func ToHTTPHeaders(Logger,http.Headers){
+}
+
+type Sinker interface {
+	RegisterSink(Sink)
 }
 
 type logger struct {

@@ -2,51 +2,56 @@ package lager
 
 import (
 	"fmt"
+	"net/http"
 	"runtime"
 	"sync/atomic"
 	"time"
-
-	"github.com/opentracing/opentracing-go"
 )
 
 const STACK_TRACE_BUFFER_SIZE = 1024 * 100
+
+type Data map[string]interface{}
 
 type Starter interface {
 	Start(task string, data ...Data) Logger
 }
 
 type Logger interface {
+	// Lifecycle
+	Start(name string, data ...Data) Logger
+	Succeed(...Data)
+	Fail(error, ...Data)
+
 	// Log Levels
 	Debug(action string, data ...Data)
 	Info(action string, data ...Data)
 	Error(action string, err error, data ...Data)
 	Fatal(action string, err error, data ...Data)
 
+	// WithData returns a logger which adds Data to be serialized
+	// on all subsequent local logs
 	WithData(Data) Logger
 
-	// Lifecycle
-	Starter() Starter
-	Succeed(data ...Data)
-	Fail(error,data ...Data)
+	// WithBaggage returns a logger which adds Data to be serialized
+	// on all subsequent rpc calls. Very expensive.
+	WithBaggage(Data) Logger
 
-// Span enables opentracing compliance
+	// Span enables opentracing compliance
 	Span() opentracing.Span
+
+	// Loggers can print their current operation name
 	String() string
 }
 
-func FromSpan(opentracing.Span)Logger{
-		return nil
-}
-
-func FromHTTPHeaders(http.Headers)Logger{
+func FromSpan(opentracing.Span) Logger {
 	return nil
 }
 
-func ToHTTPHeaders(Logger,http.Headers){
+func FromHTTPHeaders(http.Header) Logger {
+	return nil
 }
 
-type Sinker interface {
-	RegisterSink(Sink)
+func ToHTTPHeaders(Logger, http.Header) {
 }
 
 type logger struct {

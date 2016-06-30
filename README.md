@@ -1,6 +1,8 @@
 lager
 =====
 
+**Note**: This repository should be imported as `code.cloudfoundry.org/lager`.
+
 Lager is a logging library for go.
 
 ## Usage

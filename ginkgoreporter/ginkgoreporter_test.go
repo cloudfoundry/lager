@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/chug"
-	. "github.com/pivotal-golang/lager/ginkgoreporter"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/chug"
+	. "code.cloudfoundry.org/lager/ginkgoreporter"
 
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"

@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/pivotal-golang/lager"
-	. "github.com/pivotal-golang/lager/chug"
+	"code.cloudfoundry.org/lager"
+	. "code.cloudfoundry.org/lager/chug"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

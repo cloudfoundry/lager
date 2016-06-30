@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
+	"code.cloudfoundry.org/lager/chug"
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
-	"github.com/pivotal-golang/lager/chug"
 )
 
 func MatchLogEntry(entry chug.LogEntry) types.GomegaMatcher {

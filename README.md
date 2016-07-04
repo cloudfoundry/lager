@@ -11,7 +11,7 @@ Instantiate a logger with the name of your component.
 
 ```go
 import (
-  "github.com/pivotal-golang/lager"
+  "code.cloudfoundry.org/lager"
 )
 
 logger := lager.NewLogger("my-app")

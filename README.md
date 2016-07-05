@@ -75,4 +75,4 @@ output:
 
 ## License
 
-Lager is [Apache 2.0](https://github.com/pivotal-golang/lager/blob/master/LICENSE) licensed.
+Lager is [Apache 2.0](https://github.com/cloudfoundry/lager/blob/master/LICENSE) licensed.

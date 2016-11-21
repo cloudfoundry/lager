@@ -15,6 +15,16 @@ const (
 	FATAL = "fatal"
 )
 
+type LagerConfig struct {
+	LogLevel string `json:"log_level,omitempty"`
+}
+
+func DefaultLagerConfig() LagerConfig {
+	return LagerConfig{
+		LogLevel: string(INFO),
+	}
+}
+
 var minLogLevel string
 
 func AddFlags(flagSet *flag.FlagSet) {
@@ -27,7 +37,16 @@ func AddFlags(flagSet *flag.FlagSet) {
 }
 
 func New(component string) (lager.Logger, *lager.ReconfigurableSink) {
+	return newLogger(component, minLogLevel)
+}
+
+func NewFromConfig(component string, config LagerConfig) (lager.Logger, *lager.ReconfigurableSink) {
+	return newLogger(component, config.LogLevel)
+}
+
+func newLogger(component, minLogLevel string) (lager.Logger, *lager.ReconfigurableSink) {
 	var minLagerLogLevel lager.LogLevel
+
 	switch minLogLevel {
 	case DEBUG:
 		minLagerLogLevel = lager.DEBUG

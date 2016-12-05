@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 
@@ -76,9 +77,10 @@ var _ = Describe("WriterSink", func() {
 
 	Context("when logging from multiple threads", func() {
 		var content = "abcdefg "
+		var wg *sync.WaitGroup
 
-		BeforeEach(func() {
-			wg := new(sync.WaitGroup)
+		JustBeforeEach(func() {
+			wg = new(sync.WaitGroup)
 			for i := 0; i < MaxThreads; i++ {
 				wg.Add(1)
 				go func() {
@@ -86,10 +88,10 @@ var _ = Describe("WriterSink", func() {
 					wg.Done()
 				}()
 			}
-			wg.Wait()
 		})
 
 		It("writes to the given writer", func() {
+			wg.Wait()
 			lines := strings.Split(string(writer.Copy()), "\n")
 			for _, line := range lines {
 				if line == "" {
@@ -98,7 +100,31 @@ var _ = Describe("WriterSink", func() {
 				Expect(line).To(MatchJSON(fmt.Sprintf(`{"message":"%s","log_level":1,"timestamp":"","source":"","data":null}`, content)))
 			}
 		})
+
+		FContext("when the underlying writer is slow", func() {
+			var slowWriter *slowWriter
+
+			BeforeEach(func() {
+				slowWriter = NewSlowWriter()
+				sink = lager.NewWriterSink(slowWriter, lager.INFO)
+			})
+
+			It("does not block other log threads", func() {
+				// WIP Note: this isn't working to generate a red-test yet. Needs more work.
+				Eventually(func() bool { wg.Wait(); return true }, 1*time.Second).Should(BeTrue())
+				slowWriter.channel <- "release"
+
+				lines := strings.Split(string(writer.Copy()), "\n")
+				for _, line := range lines {
+					if line == "" {
+						continue
+					}
+					Expect(line).To(MatchJSON(fmt.Sprintf(`{"message":"%s","log_level":1,"timestamp":"","source":"","data":null}`, content)))
+				}
+			})
+		})
 	})
+
 })
 
 // copyWriter is an INTENTIONALLY UNSAFE writer. Use it to test code that
@@ -131,4 +157,27 @@ func (writer *copyWriter) Copy() []byte {
 	contents := make([]byte, len(writer.contents))
 	copy(contents, writer.contents)
 	return contents
+}
+
+// slowWriter
+
+func NewSlowWriter() *slowWriter {
+	return &slowWriter{
+		channel: make(chan string),
+		cpw:     NewCopyWriter(),
+	}
+}
+
+type slowWriter struct {
+	channel chan string
+	cpw     *copyWriter
+}
+
+func (writer *slowWriter) Write(p []byte) (n int, err error) {
+	<-writer.channel
+	return writer.cpw.Write(p)
+}
+
+func (writer *slowWriter) Copy() []byte {
+	return writer.cpw.Copy()
 }

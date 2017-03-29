@@ -43,20 +43,20 @@ func NewJsonRedacter(keyPatterns []string, valuePatterns []string) (*JsonRedacte
 	return ret, nil
 }
 
-func (r JsonRedacter) Redact(data []byte) ([]byte, error) {
+func (r JsonRedacter) Redact(data []byte) []byte {
 	var jsonBlob interface{}
 	err := json.Unmarshal(data, &jsonBlob)
 	if err != nil {
-		return nil, err
+		return handleError(err)
 	}
 	r.redactValue(&jsonBlob)
 
 	data, err = json.Marshal(jsonBlob)
 	if err != nil {
-		return nil, err
+		return handleError(err)
 	}
 
-	return data, nil
+	return data
 }
 
 func (r JsonRedacter) redactValue(data *interface{}) interface{} {
@@ -97,4 +97,16 @@ func (r JsonRedacter) redactObject(data *map[string]interface{}) {
 			(*data)[k] = r.redactValue(&v)
 		}
 	}
+}
+
+func handleError (err error) []byte {
+	var content []byte
+	if _, ok := err.(*json.UnsupportedTypeError); ok {
+		data := map[string]interface{}{"lager serialisation error": err.Error()}
+		content, err = json.Marshal(data)
+	}
+	if err != nil {
+		panic(err)
+	}
+	return content
 }

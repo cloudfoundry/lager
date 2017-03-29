@@ -3,21 +3,26 @@ package lager
 import (
 	"io"
 	"sync"
-	"encoding/json"
 )
 
 type redactingWriterSink struct {
 	writer      io.Writer
 	minLogLevel LogLevel
 	writeL      *sync.Mutex
+	jsonRedacter *JsonRedacter
 }
 
-func NewRedactingWriterSink(writer io.Writer, minLogLevel LogLevel) Sink {
-	return &writerSink{
+func NewRedactingWriterSink(writer io.Writer, minLogLevel LogLevel, keyPatterns []string, valuePatterns []string) (Sink, error) {
+	jsonRedacter, err := NewJsonRedacter(keyPatterns, valuePatterns)
+	if err != nil {
+		return nil, err
+	}
+	return &redactingWriterSink{
 		writer:      writer,
 		minLogLevel: minLogLevel,
 		writeL:      new(sync.Mutex),
-	}
+		jsonRedacter: jsonRedacter,
+	}, nil
 }
 
 func (sink *redactingWriterSink) Log(log LogFormat) {
@@ -26,15 +31,10 @@ func (sink *redactingWriterSink) Log(log LogFormat) {
 	}
 
 	sink.writeL.Lock()
-
-  // first, create a generic object representation of the log data
 	v := log.ToJSON()
-	m := &map[string]interface{}{}
-	json.Unmarshal(v, m)
+	rv := sink.jsonRedacter.Redact(v)
 
-	// then redact the data before logging it
-
-	sink.writer.Write(log.ToJSON())
+	sink.writer.Write(rv)
 	sink.writer.Write([]byte("\n"))
 	sink.writeL.Unlock()
 }

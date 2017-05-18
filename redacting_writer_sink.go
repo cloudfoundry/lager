@@ -9,11 +9,11 @@ type redactingWriterSink struct {
 	writer      io.Writer
 	minLogLevel LogLevel
 	writeL      *sync.Mutex
-	jsonRedacter *JsonRedacter
+	jsonRedacter *JSONRedacter
 }
 
 func NewRedactingWriterSink(writer io.Writer, minLogLevel LogLevel, keyPatterns []string, valuePatterns []string) (Sink, error) {
-	jsonRedacter, err := NewJsonRedacter(keyPatterns, valuePatterns)
+	jsonRedacter, err := NewJSONRedacter(keyPatterns, valuePatterns)
 	if err != nil {
 		return nil, err
 	}

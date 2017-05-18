@@ -13,19 +13,19 @@ const cryptSHA256Pattern = `\$5\$[A-Z0-9./]{1,16}\$[A-Z0-9./]{43}`
 const cryptSHA512Pattern = `\$6\$[A-Z0-9./]{1,16}\$[A-Z0-9./]{86}`
 const privateKeyHeaderPattern = `-----BEGIN(.*)PRIVATE KEY-----`
 
-type JsonRedacter struct {
+type JSONRedacter struct {
 	keyMatchers []*regexp.Regexp
 	valueMatchers []*regexp.Regexp
 }
 
-func NewJsonRedacter(keyPatterns []string, valuePatterns []string) (*JsonRedacter, error) {
+func NewJSONRedacter(keyPatterns []string, valuePatterns []string) (*JSONRedacter, error) {
 	if keyPatterns == nil {
 		keyPatterns = []string{"[Pp]wd","[Pp]ass"}
 	}
 	if valuePatterns == nil {
 		valuePatterns = []string{awsAccessKeyIDPattern, awsSecretAccessKeyPattern, cryptMD5Pattern, cryptSHA256Pattern, cryptSHA512Pattern, privateKeyHeaderPattern}
 	}
-	ret := &JsonRedacter{}
+	ret := &JSONRedacter{}
 	for _ ,v := range keyPatterns {
 		r, err := regexp.Compile(v)
 		if err != nil {
@@ -43,7 +43,7 @@ func NewJsonRedacter(keyPatterns []string, valuePatterns []string) (*JsonRedacte
 	return ret, nil
 }
 
-func (r JsonRedacter) Redact(data []byte) []byte {
+func (r JSONRedacter) Redact(data []byte) []byte {
 	var jsonBlob interface{}
 	err := json.Unmarshal(data, &jsonBlob)
 	if err != nil {
@@ -59,7 +59,7 @@ func (r JsonRedacter) Redact(data []byte) []byte {
 	return data
 }
 
-func (r JsonRedacter) redactValue(data *interface{}) interface{} {
+func (r JSONRedacter) redactValue(data *interface{}) interface{} {
 	if data == nil {
 		return data
 	}
@@ -79,13 +79,13 @@ func (r JsonRedacter) redactValue(data *interface{}) interface{} {
 	return (*data)
 }
 
-func (r JsonRedacter) redactArray(data *[]interface{}) {
+func (r JSONRedacter) redactArray(data *[]interface{}) {
 	for i, _ := range *data {
 		r.redactValue(&((*data)[i]))
 	}
 }
 
-func (r JsonRedacter) redactObject(data *map[string]interface{}) {
+func (r JSONRedacter) redactObject(data *map[string]interface{}) {
 	for k, v := range *data {
 		for _, m := range r.keyMatchers {
 			if m.MatchString(k) {

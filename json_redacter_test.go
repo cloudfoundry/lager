@@ -8,15 +8,15 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Json Redacter", func() {
+var _ = Describe("JSON Redacter", func() {
 	var (
 	  resp []byte
 	  err error
-	  jsonRedacter *lager.JsonRedacter
+	  jsonRedacter *lager.JSONRedacter
 	)
 
 	BeforeEach(func() {
-		jsonRedacter, err = lager.NewJsonRedacter(nil, []string{`amazonkey`, `AKIA[A-Z0-9]{16}`})
+		jsonRedacter, err = lager.NewJSONRedacter(nil, []string{`amazonkey`, `AKIA[A-Z0-9]{16}`})
 		Expect(err).NotTo(HaveOccurred())
 	})
 

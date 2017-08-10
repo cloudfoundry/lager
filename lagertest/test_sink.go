@@ -21,6 +21,7 @@ type TestLogger struct {
 type TestSink struct {
 	lager.Sink
 	buffer *gbytes.Buffer
+	Errors []error
 }
 
 func NewTestLogger(component string) *TestLogger {
@@ -74,4 +75,11 @@ func (s *TestSink) LogMessages() []string {
 		messages = append(messages, log.Message)
 	}
 	return messages
+}
+
+func (s *TestSink) Log(log lager.LogFormat) {
+	if log.Error != nil {
+		s.Errors = append(s.Errors, log.Error)
+	}
+	s.Sink.Log(log)
 }

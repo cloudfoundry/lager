@@ -49,7 +49,7 @@ var _ = Describe("RedactingWriterSink", func() {
 			Expect(message["data"].(map[string]interface{})["data_dump"]).ToNot(BeEmpty())
 		})
 
-		Measure("should be efficient", func(b Benchmarker) {
+		XMeasure("should be efficient", func(b Benchmarker) {
 			runtime := b.Time("runtime", func() {
 				for i := 0; i < 5000; i++ {
 					sink.Log(lager.LogFormat{LogLevel: lager.INFO, Message: "hello world", Data: map[string]interface{}{"some_key": func() {}}})

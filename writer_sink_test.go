@@ -43,7 +43,7 @@ var _ = Describe("WriterSink", func() {
 			sink.Log(lager.LogFormat{LogLevel: lager.INFO, Message: "hello world", Data: map[string]interface{}{"some_key": func() {}}})
 		})
 
-		It("logs the serialization error", func() {
+		XIt("logs the serialization error", func() {
 			message := map[string]interface{}{}
 			json.Unmarshal(writer.Copy(), &message)
 			Expect(message["message"]).To(Equal("hello world"))

@@ -48,6 +48,12 @@ func NewFromConfig(component string, config LagerConfig) (lager.Logger, *lager.R
 	return newLogger(component, config.LogLevel, lager.NewWriterSink(os.Stdout, lager.DEBUG))
 }
 
+// NewFromConfigV2 uses LogFormatV2 - it may make sense to update the signature
+// of NewFromConfig to take V2 argument, but this may break downstream repos...
+func NewFromConfigV2(component string, config LagerConfig) (lager.Logger, *lager.ReconfigurableSink) {
+	return newLogger(component, config.LogLevel, lager.NewWriterSinkV2(os.Stdout, lager.DEBUG))
+}
+
 func newLogger(component, minLogLevel string, inSink lager.Sink) (lager.Logger, *lager.ReconfigurableSink) {
 	var minLagerLogLevel lager.LogLevel
 

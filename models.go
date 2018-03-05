@@ -3,6 +3,7 @@ package lager
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type LogLevel int
@@ -14,7 +15,46 @@ const (
 	FATAL
 )
 
+var logLevelStr = [...]string{
+	DEBUG: "debug",
+	INFO:  "info",
+	ERROR: "error",
+	FATAL: "fatal",
+}
+
+func (l LogLevel) String() string {
+	if int(l) < len(logLevelStr) {
+		return logLevelStr[l]
+	}
+	return "invalid"
+}
+
 type Data map[string]interface{}
+
+type LogFormatV2 struct {
+	Timestamp time.Time `json:"timestamp"`
+	Source    string    `json:"source"`
+	Message   string    `json:"message"`
+	Level     string    `json:"level"`
+	Data      Data      `json:"data"`
+	Error     error     `json:"-"`
+}
+
+func (log LogFormatV2) ToJSON() []byte {
+	content, err := json.Marshal(log)
+	if err != nil {
+		_, ok1 := err.(*json.UnsupportedTypeError)
+		_, ok2 := err.(*json.MarshalerError)
+		if ok1 || ok2 {
+			log.Data = map[string]interface{}{"lager serialisation error": err.Error(), "data_dump": fmt.Sprintf("%#v", log.Data)}
+			content, err = json.Marshal(log)
+		}
+		if err != nil {
+			panic(err)
+		}
+	}
+	return content
+}
 
 type LogFormat struct {
 	Timestamp string   `json:"timestamp"`
@@ -23,6 +63,7 @@ type LogFormat struct {
 	LogLevel  LogLevel `json:"log_level"`
 	Data      Data     `json:"data"`
 	Error     error    `json:"-"`
+	time      time.Time
 }
 
 func (log LogFormat) ToJSON() []byte {

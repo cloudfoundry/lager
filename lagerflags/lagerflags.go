@@ -16,16 +16,19 @@ const (
 )
 
 type LagerConfig struct {
-	LogLevel string `json:"log_level,omitempty"`
+	LogLevel      string `json:"log_level,omitempty"`
+	HumanReadable bool   `json:"human_readable"`
 }
 
 func DefaultLagerConfig() LagerConfig {
 	return LagerConfig{
-		LogLevel: string(INFO),
+		LogLevel:      string(INFO),
+		HumanReadable: false,
 	}
 }
 
 var minLogLevel string
+var humanReadable bool
 
 func AddFlags(flagSet *flag.FlagSet) {
 	flagSet.StringVar(
@@ -33,6 +36,12 @@ func AddFlags(flagSet *flag.FlagSet) {
 		"logLevel",
 		string(INFO),
 		"log level: debug, info, error or fatal",
+	)
+	flagSet.BoolVar(
+		&humanReadable,
+		"humanReadable",
+		false,
+		"human readable: use a human readable log format",
 	)
 }
 
@@ -45,13 +54,13 @@ func NewFromSink(component string, sink lager.Sink) (lager.Logger, *lager.Reconf
 }
 
 func NewFromConfig(component string, config LagerConfig) (lager.Logger, *lager.ReconfigurableSink) {
-	return newLogger(component, config.LogLevel, lager.NewWriterSink(os.Stdout, lager.DEBUG))
-}
-
-// NewFromConfigV2 uses LogFormatV2 - it may make sense to update the signature
-// of NewFromConfig to take V2 argument, but this may break downstream repos...
-func NewFromConfigV2(component string, config LagerConfig) (lager.Logger, *lager.ReconfigurableSink) {
-	return newLogger(component, config.LogLevel, lager.NewWriterSinkV2(os.Stdout, lager.DEBUG))
+	var sink lager.Sink
+	if config.HumanReadable {
+		sink = lager.NewWriterSinkV2(os.Stdout, lager.DEBUG)
+	} else {
+		sink = lager.NewWriterSink(os.Stdout, lager.DEBUG)
+	}
+	return newLogger(component, config.LogLevel, sink)
 }
 
 func newLogger(component, minLogLevel string, inSink lager.Sink) (lager.Logger, *lager.ReconfigurableSink) {

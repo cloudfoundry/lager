@@ -1,11 +1,14 @@
 package lager_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
 
@@ -90,6 +93,134 @@ var _ = Describe("WriterSink", func() {
 	})
 })
 
+var _ = Describe("PrettyPrintWriter", func() {
+	const MaxThreads = 100
+
+	var buf *bytes.Buffer
+	var sink lager.Sink
+	var message lager.PrettyFormat
+
+	BeforeEach(func() {
+		message = lager.PrettyFormat{}
+		buf = new(bytes.Buffer)
+		sink = lager.NewPrettySink(buf, lager.INFO)
+	})
+
+	Context("when the internal time field of the provided log is zero", func() {
+		testTimestamp := func(expected time.Time) {
+			Expect(json.Unmarshal(buf.Bytes(), &message)).To(Succeed())
+			Expect(message.Timestamp).To(BeTemporally("~", expected))
+		}
+
+		Context("and the unix epoch is set", func() {
+			It("parses the timestamp", func() {
+				expectedTime := time.Now().Add(time.Hour)
+				sink.Log(lager.LogFormat{
+					LogLevel:  lager.INFO,
+					Timestamp: formatTimestamp(expectedTime),
+				})
+				testTimestamp(expectedTime)
+			})
+		})
+
+		Context("the unix epoch is empty or invalid", func() {
+			var invalidTimestamps = []string{
+				"",
+				"invalid",
+				".123",
+				"123.",
+				"123.456.",
+				"123.456.789",
+				strconv.FormatInt(time.Now().Unix(), 10),         // invalid - missing "."
+				strconv.FormatInt(-time.Now().Unix(), 10) + ".0", // negative
+				time.Now().Format(time.RFC3339),
+				time.Now().Format(time.RFC3339Nano),
+			}
+
+			It("uses the current time", func() {
+				for _, ts := range invalidTimestamps {
+					buf.Reset()
+					sink.Log(lager.LogFormat{
+						Timestamp: ts,
+						LogLevel:  lager.INFO,
+					})
+					testTimestamp(time.Now())
+				}
+			})
+		})
+	})
+
+	Context("when logging at or above the minimum log level", func() {
+		BeforeEach(func() {
+			sink.Log(lager.LogFormat{LogLevel: lager.INFO, Message: "hello world"})
+		})
+
+		It("writes to the given writer", func() {
+			Expect(json.Unmarshal(buf.Bytes(), &message)).To(Succeed())
+			Expect(message.Level).To(Equal("info"))
+			Expect(message.Message).To(Equal("hello world"))
+		})
+	})
+
+	Context("when a unserializable object is passed into data", func() {
+		BeforeEach(func() {
+			invalid := lager.LogFormat{
+				LogLevel: lager.INFO,
+				Message:  "hello world",
+				Data:     lager.Data{"nope": func() {}},
+			}
+			sink.Log(invalid)
+		})
+
+		It("logs the serialization error", func() {
+			json.Unmarshal(buf.Bytes(), &message)
+			Expect(message.Message).To(Equal("hello world"))
+			Expect(message.Level).To(Equal("info"))
+			Expect(message.Data["lager serialisation error"]).To(Equal("json: unsupported type: func()"))
+			Expect(message.Data["data_dump"]).ToNot(BeEmpty())
+		})
+	})
+
+	Context("when logging below the minimum log level", func() {
+		BeforeEach(func() {
+			sink.Log(lager.LogFormat{LogLevel: lager.DEBUG, Message: "hello world"})
+		})
+
+		It("does not write to the given writer", func() {
+			Expect(buf).To(Equal(bytes.NewBuffer(nil)))
+		})
+	})
+
+	Context("when logging from multiple threads", func() {
+		var content = "abcdefg "
+
+		BeforeEach(func() {
+			wg := new(sync.WaitGroup)
+			for i := 0; i < MaxThreads; i++ {
+				wg.Add(1)
+				go func() {
+					sink.Log(lager.LogFormat{LogLevel: lager.INFO, Message: content})
+					wg.Done()
+				}()
+			}
+			wg.Wait()
+		})
+
+		It("writes to the given writer", func() {
+			lines := strings.Split(string(buf.Bytes()), "\n")
+			for _, line := range lines {
+				if line == "" {
+					continue
+				}
+				var lineBuffer = bytes.NewBufferString(line)
+				Expect(json.Unmarshal(lineBuffer.Bytes(), &message)).To(Succeed())
+				Expect(message.Level).To(Equal("info"))
+				Expect(message.Message).To(Equal(content))
+			}
+		})
+	})
+})
+
 // copyWriter is an INTENTIONALLY UNSAFE writer. Use it to test code that
 // should be handling thread safety.
 type copyWriter struct {
@@ -120,4 +251,9 @@ func (writer *copyWriter) Copy() []byte {
 	contents := make([]byte, len(writer.contents))
 	copy(contents, writer.contents)
 	return contents
+}
+
+// duplicate of logger.go's formatTimestamp() function
+func formatTimestamp(t time.Time) string {
+	return fmt.Sprintf("%.9f", float64(t.UnixNano())/1e9)
 }

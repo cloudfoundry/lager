@@ -23,7 +23,7 @@ var logLevelStr = [...]string{
 }
 
 func (l LogLevel) String() string {
-	if int(l) < len(logLevelStr) {
+	if DEBUG <= l && l <= FATAL {
 		return logLevelStr[l]
 	}
 	return "invalid"
@@ -31,7 +31,7 @@ func (l LogLevel) String() string {
 
 type Data map[string]interface{}
 
-type LogFormatV2 struct {
+type PrettyFormat struct {
 	Timestamp time.Time `json:"timestamp"`
 	Source    string    `json:"source"`
 	Message   string    `json:"message"`
@@ -40,13 +40,16 @@ type LogFormatV2 struct {
 	Error     error     `json:"-"`
 }
 
-func (log LogFormatV2) ToJSON() []byte {
+func (log PrettyFormat) ToJSON() []byte {
 	content, err := json.Marshal(log)
 	if err != nil {
 		_, ok1 := err.(*json.UnsupportedTypeError)
 		_, ok2 := err.(*json.MarshalerError)
 		if ok1 || ok2 {
-			log.Data = map[string]interface{}{"lager serialisation error": err.Error(), "data_dump": fmt.Sprintf("%#v", log.Data)}
+			log.Data = map[string]interface{}{
+				"lager serialisation error": err.Error(),
+				"data_dump":                 fmt.Sprintf("%#v", log.Data),
+			}
 			content, err = json.Marshal(log)
 		}
 		if err != nil {

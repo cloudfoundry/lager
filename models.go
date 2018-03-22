@@ -33,9 +33,9 @@ type Data map[string]interface{}
 
 type PrettyFormat struct {
 	Timestamp time.Time `json:"timestamp"`
+	Level     string    `json:"level"`
 	Source    string    `json:"source"`
 	Message   string    `json:"message"`
-	Level     string    `json:"level"`
 	Data      Data      `json:"data"`
 	Error     error     `json:"-"`
 }

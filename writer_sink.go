@@ -63,9 +63,9 @@ func (sink *prettySink) Log(log LogFormat) {
 	}
 	out := PrettyFormat{
 		Timestamp: t,
+		Level:     log.LogLevel.String(),
 		Source:    log.Source,
 		Message:   log.Message,
-		Level:     log.LogLevel.String(),
 		Data:      log.Data,
 		Error:     log.Error,
 	}

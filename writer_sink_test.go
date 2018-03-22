@@ -14,6 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("WriterSink", func() {
@@ -104,6 +105,22 @@ var _ = Describe("PrettyPrintWriter", func() {
 		message = lager.PrettyFormat{}
 		buf = new(bytes.Buffer)
 		sink = lager.NewPrettySink(buf, lager.INFO)
+	})
+
+	It("renders in order: timestamp, level, source, message and data fields", func() {
+		expectedTime := time.Unix(0, 0)
+		sink.Log(lager.LogFormat{
+			LogLevel:  lager.INFO,
+			Timestamp: formatTimestamp(expectedTime),
+		})
+		logBuf := gbytes.BufferWithBytes(buf.Bytes())
+		Expect(logBuf).To(gbytes.Say(`{`))
+		Expect(logBuf).To(gbytes.Say(`"timestamp":"1969-12-31T16:00:00-08:00",`))
+		Expect(logBuf).To(gbytes.Say(`"level":"info",`))
+		Expect(logBuf).To(gbytes.Say(`"source":"",`))
+		Expect(logBuf).To(gbytes.Say(`"message":"",`))
+		Expect(logBuf).To(gbytes.Say(`"data":null`))
+		Expect(logBuf).To(gbytes.Say(`}`))
 	})
 
 	Context("when the internal time field of the provided log is zero", func() {

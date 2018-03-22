@@ -31,13 +31,24 @@ func (l LogLevel) String() string {
 
 type Data map[string]interface{}
 
+type RFC3339Time time.Time
+
+func (t RFC3339Time) MarshalJSON() ([]byte, error) {
+	stamp := fmt.Sprintf(`"%s"`, time.Time(t).UTC().Format(time.RFC3339Nano))
+	return []byte(stamp), nil
+}
+
+func (t *RFC3339Time) UnmarshalJSON(data []byte) error {
+	return (*time.Time)(t).UnmarshalJSON(data)
+}
+
 type PrettyFormat struct {
-	Timestamp time.Time `json:"timestamp"`
-	Level     string    `json:"level"`
-	Source    string    `json:"source"`
-	Message   string    `json:"message"`
-	Data      Data      `json:"data"`
-	Error     error     `json:"-"`
+	Timestamp RFC3339Time `json:"timestamp"`
+	Level     string      `json:"level"`
+	Source    string      `json:"source"`
+	Message   string      `json:"message"`
+	Data      Data        `json:"data"`
+	Error     error       `json:"-"`
 }
 
 func (log PrettyFormat) ToJSON() []byte {

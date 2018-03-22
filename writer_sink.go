@@ -62,7 +62,7 @@ func (sink *prettySink) Log(log LogFormat) {
 		t = parseTimestamp(log.Timestamp)
 	}
 	out := PrettyFormat{
-		Timestamp: t,
+		Timestamp: RFC3339Time(t),
 		Level:     log.LogLevel.String(),
 		Source:    log.Source,
 		Message:   log.Message,

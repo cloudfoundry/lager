@@ -107,7 +107,7 @@ var _ = Describe("PrettyPrintWriter", func() {
 		sink = lager.NewPrettySink(buf, lager.INFO)
 	})
 
-	It("renders in order: timestamp, level, source, message and data fields", func() {
+	It("renders in order: timestamp (in UTC), level, source, message and data fields", func() {
 		expectedTime := time.Unix(0, 0)
 		sink.Log(lager.LogFormat{
 			LogLevel:  lager.INFO,
@@ -115,7 +115,7 @@ var _ = Describe("PrettyPrintWriter", func() {
 		})
 		logBuf := gbytes.BufferWithBytes(buf.Bytes())
 		Expect(logBuf).To(gbytes.Say(`{`))
-		Expect(logBuf).To(gbytes.Say(`"timestamp":"1969-12-31T16:00:00-08:00",`))
+		Expect(logBuf).To(gbytes.Say(`"timestamp":"1970-01-01T00:00:00Z",`))
 		Expect(logBuf).To(gbytes.Say(`"level":"info",`))
 		Expect(logBuf).To(gbytes.Say(`"source":"",`))
 		Expect(logBuf).To(gbytes.Say(`"message":"",`))
@@ -125,8 +125,9 @@ var _ = Describe("PrettyPrintWriter", func() {
 
 	Context("when the internal time field of the provided log is zero", func() {
 		testTimestamp := func(expected time.Time) {
+			expected = expected.UTC()
 			Expect(json.Unmarshal(buf.Bytes(), &message)).To(Succeed())
-			Expect(message.Timestamp).To(BeTemporally("~", expected))
+			Expect(time.Time(message.Timestamp)).To(BeTemporally("~", expected))
 		}
 
 		Context("and the unix epoch is set", func() {

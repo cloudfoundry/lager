@@ -115,12 +115,22 @@ var _ = Describe("PrettyPrintWriter", func() {
 		})
 		logBuf := gbytes.BufferWithBytes(buf.Bytes())
 		Expect(logBuf).To(gbytes.Say(`{`))
-		Expect(logBuf).To(gbytes.Say(`"timestamp":"1970-01-01T00:00:00Z",`))
+		Expect(logBuf).To(gbytes.Say(`"timestamp":"1970-01-01T00:00:00.000000000Z",`))
 		Expect(logBuf).To(gbytes.Say(`"level":"info",`))
 		Expect(logBuf).To(gbytes.Say(`"source":"",`))
 		Expect(logBuf).To(gbytes.Say(`"message":"",`))
 		Expect(logBuf).To(gbytes.Say(`"data":null`))
 		Expect(logBuf).To(gbytes.Say(`}`))
+	})
+
+	It("always prints the time stamp with 9 decimal places", func() {
+		expectedTime := time.Unix(0, 123000000)
+		sink.Log(lager.LogFormat{
+			LogLevel:  lager.INFO,
+			Timestamp: formatTimestamp(expectedTime),
+		})
+		logBuf := gbytes.BufferWithBytes(buf.Bytes())
+		Expect(logBuf).To(gbytes.Say(`"timestamp":"1970-01-01T00:00:00.123000000Z",`))
 	})
 
 	Context("when the internal time field of the provided log is zero", func() {

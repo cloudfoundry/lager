@@ -29,6 +29,15 @@ func (l LogLevel) String() string {
 	return "invalid"
 }
 
+func LogLevelFromString(s string) (LogLevel, error) {
+	for k, v := range logLevelStr {
+		if v == s {
+			return LogLevel(k), nil
+		}
+	}
+	return -1, fmt.Errorf("invalid log level: %s", s)
+}
+
 type Data map[string]interface{}
 
 type RFC3339Time time.Time

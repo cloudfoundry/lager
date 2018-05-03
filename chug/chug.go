@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -62,57 +63,47 @@ func entry(raw []byte) (entry Entry) {
 	}
 
 	var lagerLog lager.LogFormat
+
 	decoder := json.NewDecoder(strings.NewReader(rawString[idx:]))
+	decoder.DisallowUnknownFields()
 	err := decoder.Decode(&lagerLog)
 	if err != nil {
-		return
+		var prettyLog lager.PrettyFormat
+		decoder = json.NewDecoder(strings.NewReader(rawString[idx:]))
+		err = decoder.Decode(&prettyLog)
+		if err != nil {
+			return
+		}
+		entry.Log, entry.IsLager = convertPrettyLog(prettyLog)
+	} else {
+		entry.Log, entry.IsLager = convertLagerLog(lagerLog)
 	}
-
-	entry.Log, entry.IsLager = convertLagerLog(lagerLog)
 
 	return
 }
 
 func convertLagerLog(lagerLog lager.LogFormat) (LogEntry, bool) {
-	timestamp, err := strconv.ParseFloat(lagerLog.Timestamp, 64)
-
+	trace, err := traceFromData(lagerLog.Data)
 	if err != nil {
 		return LogEntry{}, false
 	}
 
-	data := lagerLog.Data
+	session, err := sessionFromData(lagerLog.Data)
+	if err != nil {
+		return LogEntry{}, false
+	}
 
 	var logErr error
 	if lagerLog.LogLevel == lager.ERROR || lagerLog.LogLevel == lager.FATAL {
-		dataErr, ok := lagerLog.Data["error"]
-		if ok {
-			errorString, ok := dataErr.(string)
-			if !ok {
-				return LogEntry{}, false
-			}
-			logErr = errors.New(errorString)
-			delete(lagerLog.Data, "error")
+		logErr, err = errorFromData(lagerLog.Data)
+		if err != nil {
+			return LogEntry{}, false
 		}
 	}
 
-	var logTrace string
-	dataTrace, ok := lagerLog.Data["trace"]
-	if ok {
-		logTrace, ok = dataTrace.(string)
-		if !ok {
-			return LogEntry{}, false
-		}
-		delete(lagerLog.Data, "trace")
-	}
-
-	var logSession string
-	dataSession, ok := lagerLog.Data["session"]
-	if ok {
-		logSession, ok = dataSession.(string)
-		if !ok {
-			return LogEntry{}, false
-		}
-		delete(lagerLog.Data, "session")
+	timestamp, err := strconv.ParseFloat(lagerLog.Timestamp, 64)
+	if err != nil {
+		return LogEntry{}, false
 	}
 
 	return LogEntry{
@@ -120,11 +111,88 @@ func convertLagerLog(lagerLog lager.LogFormat) (LogEntry, bool) {
 		LogLevel:  lagerLog.LogLevel,
 		Source:    lagerLog.Source,
 		Message:   lagerLog.Message,
-		Session:   logSession,
+		Session:   session,
 
 		Error: logErr,
-		Trace: logTrace,
+		Trace: trace,
 
-		Data: data,
+		Data: lagerLog.Data,
 	}, true
+}
+
+func convertPrettyLog(lagerLog lager.PrettyFormat) (LogEntry, bool) {
+	trace, err := traceFromData(lagerLog.Data)
+	if err != nil {
+		return LogEntry{}, false
+	}
+
+	session, err := sessionFromData(lagerLog.Data)
+	if err != nil {
+		return LogEntry{}, false
+	}
+
+	logLevel, err := lager.LogLevelFromString(lagerLog.Level)
+	if err != nil {
+		return LogEntry{}, false
+	}
+
+	var logErr error
+	if logLevel == lager.ERROR || logLevel == lager.FATAL {
+		logErr, err = errorFromData(lagerLog.Data)
+		if err != nil {
+			return LogEntry{}, false
+		}
+	}
+
+	return LogEntry{
+		Timestamp: time.Time(lagerLog.Timestamp),
+		LogLevel:  logLevel,
+		Source:    lagerLog.Source,
+		Message:   lagerLog.Message,
+		Session:   session,
+
+		Error: logErr,
+		Trace: trace,
+
+		Data: lagerLog.Data,
+	}, true
+}
+
+func traceFromData(data lager.Data) (string, error) {
+	trace, ok := data["trace"]
+	if ok {
+		traceString, ok := trace.(string)
+		if !ok {
+			return "", fmt.Errorf("unable to convert trace: %v", trace)
+		}
+		delete(data, "trace")
+		return traceString, nil
+	}
+	return "", nil
+}
+
+func sessionFromData(data lager.Data) (string, error) {
+	session, ok := data["session"]
+	if ok {
+		sessionString, ok := session.(string)
+		if !ok {
+			return "", fmt.Errorf("unable to convert session: %v", session)
+		}
+		delete(data, "session")
+		return sessionString, nil
+	}
+	return "", nil
+}
+
+func errorFromData(data lager.Data) (error, error) {
+	err, ok := data["error"]
+	if ok {
+		errorString, ok := err.(string)
+		if !ok {
+			return nil, fmt.Errorf("unable to convert error: %v", err)
+		}
+		delete(data, "error")
+		return errors.New(errorString), nil
+	}
+	return nil, nil
 }

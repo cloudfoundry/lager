@@ -137,7 +137,7 @@ var _ = Describe("PrettyPrintWriter", func() {
 		testTimestamp := func(expected time.Time) {
 			expected = expected.UTC()
 			Expect(json.Unmarshal(buf.Bytes(), &message)).To(Succeed())
-			Expect(time.Time(message.Timestamp)).To(BeTemporally("~", expected))
+			Expect(time.Time(message.Timestamp)).To(BeTemporally("~", expected, time.Minute))
 		}
 
 		Context("and the unix epoch is set", func() {

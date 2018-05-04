@@ -53,7 +53,7 @@ func (t *RFC3339Time) UnmarshalJSON(data []byte) error {
 	return (*time.Time)(t).UnmarshalJSON(data)
 }
 
-type PrettyFormat struct {
+type prettyFormat struct {
 	Timestamp RFC3339Time `json:"timestamp"`
 	Level     string      `json:"level"`
 	Source    string      `json:"source"`
@@ -62,7 +62,7 @@ type PrettyFormat struct {
 	Error     error       `json:"-"`
 }
 
-func (log PrettyFormat) ToJSON() []byte {
+func (log prettyFormat) toJSON() []byte {
 	content, err := json.Marshal(log)
 	if err != nil {
 		_, ok1 := err.(*json.UnsupportedTypeError)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"runtime"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/chug"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -99,10 +101,10 @@ var _ = Describe("PrettyPrintWriter", func() {
 
 	var buf *bytes.Buffer
 	var sink lager.Sink
-	var message lager.PrettyFormat
+	var message lager.LogFormat
 
 	BeforeEach(func() {
-		message = lager.PrettyFormat{}
+		message = lager.LogFormat{}
 		buf = new(bytes.Buffer)
 		sink = lager.NewPrettySink(buf, lager.INFO)
 	})
@@ -137,7 +139,9 @@ var _ = Describe("PrettyPrintWriter", func() {
 		testTimestamp := func(expected time.Time) {
 			expected = expected.UTC()
 			Expect(json.Unmarshal(buf.Bytes(), &message)).To(Succeed())
-			Expect(time.Time(message.Timestamp)).To(BeTemporally("~", expected, time.Minute))
+			timestamp, err := time.Parse(time.RFC3339Nano, message.Timestamp)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(timestamp).To(BeTemporally("~", expected, time.Minute))
 		}
 
 		Context("and the unix epoch is set", func() {
@@ -184,9 +188,9 @@ var _ = Describe("PrettyPrintWriter", func() {
 		})
 
 		It("writes to the given writer", func() {
-			Expect(json.Unmarshal(buf.Bytes(), &message)).To(Succeed())
-			Expect(message.Level).To(Equal("info"))
-			Expect(message.Message).To(Equal("hello world"))
+			log := firstLogEntry(buf)
+			Expect(log.LogLevel).To(Equal(lager.INFO))
+			Expect(log.Message).To(Equal("hello world"))
 		})
 	})
 
@@ -201,11 +205,11 @@ var _ = Describe("PrettyPrintWriter", func() {
 		})
 
 		It("logs the serialization error", func() {
-			json.Unmarshal(buf.Bytes(), &message)
-			Expect(message.Message).To(Equal("hello world"))
-			Expect(message.Level).To(Equal("info"))
-			Expect(message.Data["lager serialisation error"]).To(Equal("json: unsupported type: func()"))
-			Expect(message.Data["data_dump"]).ToNot(BeEmpty())
+			log := firstLogEntry(buf)
+			Expect(log.Message).To(Equal("hello world"))
+			Expect(log.LogLevel).To(Equal(lager.INFO))
+			Expect(log.Data["lager serialisation error"]).To(Equal("json: unsupported type: func()"))
+			Expect(log.Data["data_dump"]).ToNot(BeEmpty())
 		})
 	})
 
@@ -235,15 +239,10 @@ var _ = Describe("PrettyPrintWriter", func() {
 		})
 
 		It("writes to the given writer", func() {
-			lines := strings.Split(string(buf.Bytes()), "\n")
-			for _, line := range lines {
-				if line == "" {
-					continue
-				}
-				var lineBuffer = bytes.NewBufferString(line)
-				Expect(json.Unmarshal(lineBuffer.Bytes(), &message)).To(Succeed())
-				Expect(message.Level).To(Equal("info"))
-				Expect(message.Message).To(Equal(content))
+			logs := logEntries(buf)
+			for _, log := range logs {
+				Expect(log.LogLevel).To(Equal(lager.INFO))
+				Expect(log.Message).To(Equal(content))
 			}
 		})
 	})
@@ -284,4 +283,22 @@ func (writer *copyWriter) Copy() []byte {
 // duplicate of logger.go's formatTimestamp() function
 func formatTimestamp(t time.Time) string {
 	return fmt.Sprintf("%.9f", float64(t.UnixNano())/1e9)
+}
+
+func firstLogEntry(r io.Reader) chug.LogEntry {
+	entries := logEntries(r)
+	Expect(len(entries)).To(BeNumerically(">", 0))
+	return entries[0]
+}
+
+func logEntries(r io.Reader) []chug.LogEntry {
+	stream := make(chan chug.Entry, 42)
+	go chug.Chug(r, stream)
+	entries := []chug.LogEntry{}
+	for entry := range stream {
+		if entry.IsLager {
+			entries = append(entries, entry.Log)
+		}
+	}
+	return entries
 }

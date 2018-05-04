@@ -61,7 +61,7 @@ func (sink *prettySink) Log(log LogFormat) {
 	if t.IsZero() {
 		t = parseTimestamp(log.Timestamp)
 	}
-	out := PrettyFormat{
+	out := prettyFormat{
 		Timestamp: RFC3339Time(t),
 		Level:     log.LogLevel.String(),
 		Source:    log.Source,
@@ -70,7 +70,7 @@ func (sink *prettySink) Log(log LogFormat) {
 		Error:     log.Error,
 	}
 	sink.writeL.Lock()
-	sink.writer.Write(out.ToJSON())
+	sink.writer.Write(out.toJSON())
 	sink.writer.Write([]byte("\n"))
 	sink.writeL.Unlock()
 }

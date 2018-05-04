@@ -33,10 +33,10 @@ type Data map[string]interface{}
 
 type RFC3339Time time.Time
 
-const RFC3339Nano = "2006-01-02T15:04:05.000000000Z07:00"
+const rfc3339Nano = "2006-01-02T15:04:05.000000000Z07:00"
 
 func (t RFC3339Time) MarshalJSON() ([]byte, error) {
-	stamp := fmt.Sprintf(`"%s"`, time.Time(t).UTC().Format(RFC3339Nano))
+	stamp := fmt.Sprintf(`"%s"`, time.Time(t).UTC().Format(rfc3339Nano))
 	return []byte(stamp), nil
 }
 

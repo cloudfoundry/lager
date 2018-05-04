@@ -2,10 +2,7 @@ package lager
 
 import (
 	"io"
-	"strconv"
-	"strings"
 	"sync"
-	"time"
 )
 
 // A Sink represents a write destination for a Logger. It provides
@@ -57,39 +54,9 @@ func (sink *prettySink) Log(log LogFormat) {
 	if log.LogLevel < sink.minLogLevel {
 		return
 	}
-	t := log.time
-	if t.IsZero() {
-		t = parseTimestamp(log.Timestamp)
-	}
-	out := prettyFormat{
-		Timestamp: RFC3339Time(t),
-		Level:     log.LogLevel.String(),
-		Source:    log.Source,
-		Message:   log.Message,
-		Data:      log.Data,
-		Error:     log.Error,
-	}
+
 	sink.writeL.Lock()
-	sink.writer.Write(out.toJSON())
+	sink.writer.Write(log.toPrettyJSON())
 	sink.writer.Write([]byte("\n"))
 	sink.writeL.Unlock()
-}
-
-func parseTimestamp(s string) time.Time {
-	if s == "" {
-		return time.Now()
-	}
-	n := strings.IndexByte(s, '.')
-	if n <= 0 || n == len(s)-1 {
-		return time.Now()
-	}
-	sec, err := strconv.ParseInt(s[:n], 10, 64)
-	if err != nil || sec < 0 {
-		return time.Now()
-	}
-	nsec, err := strconv.ParseInt(s[n+1:], 10, 64)
-	if err != nil || nsec < 0 {
-		return time.Now()
-	}
-	return time.Unix(sec, nsec)
 }

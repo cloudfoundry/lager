@@ -3,6 +3,8 @@ package lager
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -53,34 +55,6 @@ func (t *RFC3339Time) UnmarshalJSON(data []byte) error {
 	return (*time.Time)(t).UnmarshalJSON(data)
 }
 
-type prettyFormat struct {
-	Timestamp RFC3339Time `json:"timestamp"`
-	Level     string      `json:"level"`
-	Source    string      `json:"source"`
-	Message   string      `json:"message"`
-	Data      Data        `json:"data"`
-	Error     error       `json:"-"`
-}
-
-func (log prettyFormat) toJSON() []byte {
-	content, err := json.Marshal(log)
-	if err != nil {
-		_, ok1 := err.(*json.UnsupportedTypeError)
-		_, ok2 := err.(*json.MarshalerError)
-		if ok1 || ok2 {
-			log.Data = map[string]interface{}{
-				"lager serialisation error": err.Error(),
-				"data_dump":                 fmt.Sprintf("%#v", log.Data),
-			}
-			content, err = json.Marshal(log)
-		}
-		if err != nil {
-			panic(err)
-		}
-	}
-	return content
-}
-
 type LogFormat struct {
 	Timestamp string   `json:"timestamp"`
 	Source    string   `json:"source"`
@@ -94,15 +68,79 @@ type LogFormat struct {
 func (log LogFormat) ToJSON() []byte {
 	content, err := json.Marshal(log)
 	if err != nil {
-		_, ok1 := err.(*json.UnsupportedTypeError)
-		_, ok2 := err.(*json.MarshalerError)
-		if ok1 || ok2 {
-			log.Data = map[string]interface{}{"lager serialisation error": err.Error(), "data_dump": fmt.Sprintf("%#v", log.Data)}
-			content, err = json.Marshal(log)
-		}
+		log.Data = dataForJSONMarhallingError(err, log.Data)
+		content, err = json.Marshal(log)
 		if err != nil {
 			panic(err)
 		}
 	}
 	return content
+}
+
+func (log LogFormat) toPrettyJSON() []byte {
+	t := log.time
+	if t.IsZero() {
+		t = parseTimestamp(log.Timestamp)
+	}
+
+	prettyLog := struct {
+		Timestamp RFC3339Time `json:"timestamp"`
+		Level     string      `json:"level"`
+		Source    string      `json:"source"`
+		Message   string      `json:"message"`
+		Data      Data        `json:"data"`
+		Error     error       `json:"-"`
+	}{
+		Timestamp: RFC3339Time(t),
+		Level:     log.LogLevel.String(),
+		Source:    log.Source,
+		Message:   log.Message,
+		Data:      log.Data,
+		Error:     log.Error,
+	}
+
+	content, err := json.Marshal(prettyLog)
+
+	if err != nil {
+		prettyLog.Data = dataForJSONMarhallingError(err, prettyLog.Data)
+		content, err = json.Marshal(prettyLog)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return content
+}
+
+func dataForJSONMarhallingError(err error, data Data) Data {
+	_, ok1 := err.(*json.UnsupportedTypeError)
+	_, ok2 := err.(*json.MarshalerError)
+	errKey := "unknown_error"
+	if ok1 || ok2 {
+		errKey = "lager serialisation error"
+	}
+
+	return map[string]interface{}{
+		errKey:      err.Error(),
+		"data_dump": fmt.Sprintf("%#v", data),
+	}
+}
+
+func parseTimestamp(s string) time.Time {
+	if s == "" {
+		return time.Now()
+	}
+	n := strings.IndexByte(s, '.')
+	if n <= 0 || n == len(s)-1 {
+		return time.Now()
+	}
+	sec, err := strconv.ParseInt(s[:n], 10, 64)
+	if err != nil || sec < 0 {
+		return time.Now()
+	}
+	nsec, err := strconv.ParseInt(s[n+1:], 10, 64)
+	if err != nil || nsec < 0 {
+		return time.Now()
+	}
+	return time.Unix(sec, nsec)
 }

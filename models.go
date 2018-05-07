@@ -42,16 +42,16 @@ func LogLevelFromString(s string) (LogLevel, error) {
 
 type Data map[string]interface{}
 
-type RFC3339Time time.Time
+type rfc3339Time time.Time
 
 const rfc3339Nano = "2006-01-02T15:04:05.000000000Z07:00"
 
-func (t RFC3339Time) MarshalJSON() ([]byte, error) {
+func (t rfc3339Time) MarshalJSON() ([]byte, error) {
 	stamp := fmt.Sprintf(`"%s"`, time.Time(t).UTC().Format(rfc3339Nano))
 	return []byte(stamp), nil
 }
 
-func (t *RFC3339Time) UnmarshalJSON(data []byte) error {
+func (t *rfc3339Time) UnmarshalJSON(data []byte) error {
 	return (*time.Time)(t).UnmarshalJSON(data)
 }
 
@@ -84,14 +84,14 @@ func (log LogFormat) toPrettyJSON() []byte {
 	}
 
 	prettyLog := struct {
-		Timestamp RFC3339Time `json:"timestamp"`
+		Timestamp rfc3339Time `json:"timestamp"`
 		Level     string      `json:"level"`
 		Source    string      `json:"source"`
 		Message   string      `json:"message"`
 		Data      Data        `json:"data"`
 		Error     error       `json:"-"`
 	}{
-		Timestamp: RFC3339Time(t),
+		Timestamp: rfc3339Time(t),
 		Level:     log.LogLevel.String(),
 		Source:    log.Source,
 		Message:   log.Message,

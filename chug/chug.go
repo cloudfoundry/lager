@@ -36,12 +36,12 @@ type LogEntry struct {
 
 // temporarily duplicated to make refactoring in small steps possible
 type prettyFormat struct {
-	Timestamp lager.RFC3339Time `json:"timestamp"`
-	Level     string            `json:"level"`
-	Source    string            `json:"source"`
-	Message   string            `json:"message"`
-	Data      lager.Data        `json:"data"`
-	Error     error             `json:"-"`
+	Timestamp time.Time  `json:"timestamp"`
+	Level     string     `json:"level"`
+	Source    string     `json:"source"`
+	Message   string     `json:"message"`
+	Data      lager.Data `json:"data"`
+	Error     error      `json:"-"`
 }
 
 func Chug(reader io.Reader, out chan<- Entry) {

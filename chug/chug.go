@@ -34,14 +34,31 @@ type LogEntry struct {
 	Data lager.Data
 }
 
+type lagerTime struct {
+	t time.Time
+}
+
+func (t lagerTime) Time() time.Time {
+	return t.t
+}
+
+func toTimestamp(d string) (time.Time, error) {
+	f, err := strconv.ParseFloat(d, 64)
+	if err == nil {
+		return time.Unix(0, int64(f*1e9)), nil
+	}
+	return time.Parse(time.RFC3339Nano, d)
+}
+
 // temporarily duplicated to make refactoring in small steps possible
 type prettyFormat struct {
-	Timestamp time.Time  `json:"timestamp"`
-	Level     string     `json:"level"`
-	Source    string     `json:"source"`
-	Message   string     `json:"message"`
-	Data      lager.Data `json:"data"`
-	Error     error      `json:"-"`
+	Timestamp string         `json:"timestamp"`
+	Level     string         `json:"level"`
+	LogLevel  lager.LogLevel `json:"log_level"`
+	Source    string         `json:"source"`
+	Message   string         `json:"message"`
+	Data      lager.Data     `json:"data"`
+	Error     error          `json:"-"`
 }
 
 func Chug(reader io.Reader, out chan<- Entry) {
@@ -72,62 +89,16 @@ func entry(raw []byte) (entry Entry) {
 		return
 	}
 
-	var lagerLog lager.LogFormat
-
+	var prettyLog prettyFormat
 	decoder := json.NewDecoder(strings.NewReader(rawString[idx:]))
-	decoder.DisallowUnknownFields()
-	err := decoder.Decode(&lagerLog)
+	err := decoder.Decode(&prettyLog)
 	if err != nil {
-		var prettyLog prettyFormat
-		decoder = json.NewDecoder(strings.NewReader(rawString[idx:]))
-		err = decoder.Decode(&prettyLog)
-		if err != nil {
-			return
-		}
-		entry.Log, entry.IsLager = convertPrettyLog(prettyLog)
-	} else {
-		entry.Log, entry.IsLager = convertLagerLog(lagerLog)
+		return
 	}
+
+	entry.Log, entry.IsLager = convertPrettyLog(prettyLog)
 
 	return
-}
-
-func convertLagerLog(lagerLog lager.LogFormat) (LogEntry, bool) {
-	trace, err := traceFromData(lagerLog.Data)
-	if err != nil {
-		return LogEntry{}, false
-	}
-
-	session, err := sessionFromData(lagerLog.Data)
-	if err != nil {
-		return LogEntry{}, false
-	}
-
-	var logErr error
-	if lagerLog.LogLevel == lager.ERROR || lagerLog.LogLevel == lager.FATAL {
-		logErr, err = errorFromData(lagerLog.Data)
-		if err != nil {
-			return LogEntry{}, false
-		}
-	}
-
-	timestamp, err := strconv.ParseFloat(lagerLog.Timestamp, 64)
-	if err != nil {
-		return LogEntry{}, false
-	}
-
-	return LogEntry{
-		Timestamp: time.Unix(0, int64(timestamp*1e9)),
-		LogLevel:  lagerLog.LogLevel,
-		Source:    lagerLog.Source,
-		Message:   lagerLog.Message,
-		Session:   session,
-
-		Error: logErr,
-		Trace: trace,
-
-		Data: lagerLog.Data,
-	}, true
 }
 
 func convertPrettyLog(lagerLog prettyFormat) (LogEntry, bool) {
@@ -141,9 +112,12 @@ func convertPrettyLog(lagerLog prettyFormat) (LogEntry, bool) {
 		return LogEntry{}, false
 	}
 
-	logLevel, err := lager.LogLevelFromString(lagerLog.Level)
-	if err != nil {
-		return LogEntry{}, false
+	logLevel := lagerLog.LogLevel
+	if lagerLog.Level != "" {
+		logLevel, err = lager.LogLevelFromString(lagerLog.Level)
+		if err != nil {
+			return LogEntry{}, false
+		}
 	}
 
 	var logErr error
@@ -154,8 +128,13 @@ func convertPrettyLog(lagerLog prettyFormat) (LogEntry, bool) {
 		}
 	}
 
+	timestamp, err := toTimestamp(lagerLog.Timestamp)
+	if err != nil {
+		return LogEntry{}, false
+	}
+
 	return LogEntry{
-		Timestamp: time.Time(lagerLog.Timestamp),
+		Timestamp: timestamp,
 		LogLevel:  logLevel,
 		Source:    lagerLog.Source,
 		Message:   lagerLog.Message,

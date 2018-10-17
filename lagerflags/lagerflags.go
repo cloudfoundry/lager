@@ -106,12 +106,13 @@ func NewFromSink(component string, sink lager.Sink) (lager.Logger, *lager.Reconf
 
 func NewFromConfig(component string, config LagerConfig) (lager.Logger, *lager.ReconfigurableSink) {
 	var sink lager.Sink
-	switch config.TimeFormat {
-	case FormatRFC3339:
+
+	if config.TimeFormat == FormatRFC3339 {
 		sink = lager.NewPrettySink(os.Stdout, lager.DEBUG)
-	default:
+	} else {
 		sink = lager.NewWriterSink(os.Stdout, lager.DEBUG)
 	}
+
 	return newLogger(component, config.LogLevel, sink)
 }
 

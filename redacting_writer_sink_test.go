@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/lager"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -83,6 +83,85 @@ var _ = Describe("RedactingWriterSink", func() {
 				}
 				Expect(line).To(MatchJSON(fmt.Sprintf(`{"message":"%s","log_level":1,"timestamp":"","source":"","data":null}`, content)))
 			}
+		})
+	})
+})
+
+var _ = Describe("RedactingPrettySink", func() {
+	const MaxThreads = 100
+
+	var sink lager.Sink
+	var writer *copyWriter
+
+	BeforeEach(func() {
+		writer = NewCopyWriter()
+		var err error
+		sink, err = lager.NewRedactingPrettySink(writer, lager.INFO, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Context("when logging above the minimum log level", func() {
+		BeforeEach(func() {
+			expectedTime := time.Unix(0, 0)
+
+			sink.Log(lager.LogFormat{
+				LogLevel:  lager.INFO,
+				Timestamp: formatTimestamp(expectedTime),
+				Message:   "hello world",
+				Data:      lager.Data{"password": "abcd"},
+			})
+		})
+
+		It("writes to the given writer with a formatted timestamp and log level", func() {
+			Expect(writer.Copy()).To(MatchJSON(`{"timestamp":"1970-01-01T00:00:00.000000000Z","level":"info","source":"","message":"hello world","data":{"password":"*REDACTED*"}}`))
+		})
+	})
+
+	Context("when logging below the minimum log level", func() {
+		BeforeEach(func() {
+			sink.Log(lager.LogFormat{LogLevel: lager.DEBUG, Message: "hello world"})
+		})
+
+		It("does not write to the given writer", func() {
+			Expect(writer.Copy()).To(Equal([]byte{}))
+		})
+	})
+
+	Context("when logging from multiple threads", func() {
+		var content = "abcdefg "
+
+		BeforeEach(func() {
+			expectedTime := time.Unix(0, 0)
+
+			wg := new(sync.WaitGroup)
+			for i := 0; i < MaxThreads; i++ {
+				wg.Add(1)
+				go func() {
+					sink.Log(lager.LogFormat{
+						LogLevel:  lager.INFO,
+						Timestamp: formatTimestamp(expectedTime),
+						Message:   content,
+					})
+					wg.Done()
+				}()
+			}
+			wg.Wait()
+		})
+
+		It("writes to the given writer", func() {
+			lines := strings.Split(string(writer.Copy()), "\n")
+			lineCount := 0
+
+			for _, line := range lines {
+				if line == "" {
+					continue
+				}
+
+				Expect(line).To(MatchJSON(fmt.Sprintf(`{"message":"%s","level":"info","timestamp":"1970-01-01T00:00:00.000000000Z","source":"","data":null}`, content)))
+				lineCount++
+			}
+
+			Expect(lineCount).To(Equal(MaxThreads))
 		})
 	})
 })

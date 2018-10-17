@@ -38,3 +38,37 @@ func (sink *redactingWriterSink) Log(log LogFormat) {
 	sink.writer.Write([]byte("\n"))
 	sink.writeL.Unlock()
 }
+
+type redactingPrettySink struct {
+	writer       io.Writer
+	minLogLevel  LogLevel
+	writeL       *sync.Mutex
+	jsonRedacter *JSONRedacter
+}
+
+func NewRedactingPrettySink(writer io.Writer, minLogLevel LogLevel, keyPatterns []string, valuePatterns []string) (Sink, error) {
+	jsonRedacter, err := NewJSONRedacter(keyPatterns, valuePatterns)
+	if err != nil {
+		return nil, err
+	}
+	return &redactingPrettySink{
+		writer:       writer,
+		minLogLevel:  minLogLevel,
+		writeL:       new(sync.Mutex),
+		jsonRedacter: jsonRedacter,
+	}, nil
+}
+
+func (sink *redactingPrettySink) Log(log LogFormat) {
+	if log.LogLevel < sink.minLogLevel {
+		return
+	}
+
+	sink.writeL.Lock()
+	v := log.toPrettyJSON()
+	rv := sink.jsonRedacter.Redact(v)
+
+	sink.writer.Write(rv)
+	sink.writer.Write([]byte("\n"))
+	sink.writeL.Unlock()
+}

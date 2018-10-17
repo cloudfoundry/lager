@@ -125,10 +125,16 @@ func NewFromConfig(component string, config LagerConfig) (lager.Logger, *lager.R
 	var sink lager.Sink
 
 	if config.RedactSecrets {
+		var err error
+
 		if config.TimeFormat == FormatRFC3339 {
-			sink, _ = lager.NewRedactingPrettySink(os.Stdout, lager.DEBUG, nil, nil)
+			sink, err = lager.NewRedactingPrettySink(os.Stdout, lager.DEBUG, nil, nil)
 		} else {
-			sink, _ = lager.NewRedactingWriterSink(os.Stdout, lager.DEBUG, nil, nil)
+			sink, err = lager.NewRedactingWriterSink(os.Stdout, lager.DEBUG, nil, nil)
+		}
+
+		if err != nil {
+			panic(err)
 		}
 	} else {
 		if config.TimeFormat == FormatRFC3339 {

@@ -124,23 +124,19 @@ func NewFromSink(component string, sink lager.Sink) (lager.Logger, *lager.Reconf
 func NewFromConfig(component string, config LagerConfig) (lager.Logger, *lager.ReconfigurableSink) {
 	var sink lager.Sink
 
+	if config.TimeFormat == FormatRFC3339 {
+		sink = lager.NewPrettySink(os.Stdout, lager.DEBUG)
+	} else {
+		sink = lager.NewWriterSink(os.Stdout, lager.DEBUG)
+	}
+
 	if config.RedactSecrets {
 		var err error
 
-		if config.TimeFormat == FormatRFC3339 {
-			sink, err = lager.NewRedactingPrettySink(os.Stdout, lager.DEBUG, nil, nil)
-		} else {
-			sink, err = lager.NewRedactingWriterSink(os.Stdout, lager.DEBUG, nil, nil)
-		}
+		sink, err = lager.NewRedactingWrapperSink(sink, nil, nil)
 
 		if err != nil {
 			panic(err)
-		}
-	} else {
-		if config.TimeFormat == FormatRFC3339 {
-			sink = lager.NewPrettySink(os.Stdout, lager.DEBUG)
-		} else {
-			sink = lager.NewWriterSink(os.Stdout, lager.DEBUG)
 		}
 	}
 

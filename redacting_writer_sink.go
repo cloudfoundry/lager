@@ -1,6 +1,7 @@
 package lager
 
 import (
+	"encoding/json"
 	"io"
 	"sync"
 )
@@ -39,36 +40,40 @@ func (sink *redactingWriterSink) Log(log LogFormat) {
 	sink.writeL.Unlock()
 }
 
-type redactingPrettySink struct {
-	writer       io.Writer
-	minLogLevel  LogLevel
-	writeL       *sync.Mutex
+type redactingWrapperSink struct {
+	sink         Sink
 	jsonRedacter *JSONRedacter
 }
 
-func NewRedactingPrettySink(writer io.Writer, minLogLevel LogLevel, keyPatterns []string, valuePatterns []string) (Sink, error) {
+func NewRedactingWrapperSink(sink Sink, keyPatterns []string, valuePatterns []string) (Sink, error) {
 	jsonRedacter, err := NewJSONRedacter(keyPatterns, valuePatterns)
 	if err != nil {
 		return nil, err
 	}
-	return &redactingPrettySink{
-		writer:       writer,
-		minLogLevel:  minLogLevel,
-		writeL:       new(sync.Mutex),
+
+	return &redactingWrapperSink{
+		sink:         sink,
 		jsonRedacter: jsonRedacter,
 	}, nil
 }
 
-func (sink *redactingPrettySink) Log(log LogFormat) {
-	if log.LogLevel < sink.minLogLevel {
-		return
+func (sink *redactingWrapperSink) Log(log LogFormat) {
+	rawJSON, err := json.Marshal(log.Data)
+	if err != nil {
+		log.Data = dataForJSONMarhallingError(err, log.Data)
+
+		rawJSON, err = json.Marshal(log.Data)
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	sink.writeL.Lock()
-	v := log.toPrettyJSON()
-	rv := sink.jsonRedacter.Redact(v)
+	redactedJSON := sink.jsonRedacter.Redact(rawJSON)
 
-	sink.writer.Write(rv)
-	sink.writer.Write([]byte("\n"))
-	sink.writeL.Unlock()
+	err = json.Unmarshal(redactedJSON, &log.Data)
+	if err != nil {
+		panic(err)
+	}
+
+	sink.sink.Log(log)
 }

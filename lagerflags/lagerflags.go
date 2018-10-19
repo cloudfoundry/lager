@@ -68,18 +68,21 @@ func (t TimeFormat) String() string {
 }
 
 type LagerConfig struct {
-	LogLevel   string     `json:"log_level,omitempty"`
-	TimeFormat TimeFormat `json:"time_format"`
+	LogLevel      string     `json:"log_level,omitempty"`
+	RedactSecrets bool       `json:"redact_secrets,omitempty"`
+	TimeFormat    TimeFormat `json:"time_format"`
 }
 
 func DefaultLagerConfig() LagerConfig {
 	return LagerConfig{
-		LogLevel:   string(INFO),
-		TimeFormat: FormatUnixEpoch,
+		LogLevel:      string(INFO),
+		RedactSecrets: false,
+		TimeFormat:    FormatUnixEpoch,
 	}
 }
 
 var minLogLevel string
+var redactSecrets bool
 var timeFormat TimeFormat
 
 func AddFlags(flagSet *flag.FlagSet) {
@@ -89,11 +92,25 @@ func AddFlags(flagSet *flag.FlagSet) {
 		string(INFO),
 		"log level: debug, info, error or fatal",
 	)
+	flagSet.BoolVar(
+		&redactSecrets,
+		"redactSecrets",
+		false,
+		"use a redacting log sink to scrub sensitive values from data being logged",
+	)
 	flagSet.Var(
 		&timeFormat,
 		"timeFormat",
 		`Format for timestamp in component logs. Valid values are "unix-epoch" and "rfc3339".`,
 	)
+}
+
+func ConfigFromFlags() LagerConfig {
+	return LagerConfig{
+		LogLevel:      minLogLevel,
+		RedactSecrets: redactSecrets,
+		TimeFormat:    timeFormat,
+	}
 }
 
 func New(component string) (lager.Logger, *lager.ReconfigurableSink) {
@@ -106,12 +123,22 @@ func NewFromSink(component string, sink lager.Sink) (lager.Logger, *lager.Reconf
 
 func NewFromConfig(component string, config LagerConfig) (lager.Logger, *lager.ReconfigurableSink) {
 	var sink lager.Sink
-	switch config.TimeFormat {
-	case FormatRFC3339:
+
+	if config.TimeFormat == FormatRFC3339 {
 		sink = lager.NewPrettySink(os.Stdout, lager.DEBUG)
-	default:
+	} else {
 		sink = lager.NewWriterSink(os.Stdout, lager.DEBUG)
 	}
+
+	if config.RedactSecrets {
+		var err error
+		sink, err = lager.NewRedactingSink(sink, nil, nil)
+		if err != nil {
+			panic(err)
+		}
+
+	}
+
 	return newLogger(component, config.LogLevel, sink)
 }
 

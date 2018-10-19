@@ -40,24 +40,24 @@ func (sink *redactingWriterSink) Log(log LogFormat) {
 	sink.writeL.Unlock()
 }
 
-type redactingWrapperSink struct {
+type redactingSink struct {
 	sink         Sink
 	jsonRedacter *JSONRedacter
 }
 
-func NewRedactingWrapperSink(sink Sink, keyPatterns []string, valuePatterns []string) (Sink, error) {
+func NewRedactingSink(sink Sink, keyPatterns []string, valuePatterns []string) (Sink, error) {
 	jsonRedacter, err := NewJSONRedacter(keyPatterns, valuePatterns)
 	if err != nil {
 		return nil, err
 	}
 
-	return &redactingWrapperSink{
+	return &redactingSink{
 		sink:         sink,
 		jsonRedacter: jsonRedacter,
 	}, nil
 }
 
-func (sink *redactingWrapperSink) Log(log LogFormat) {
+func (sink *redactingSink) Log(log LogFormat) {
 	rawJSON, err := json.Marshal(log.Data)
 	if err != nil {
 		log.Data = dataForJSONMarhallingError(err, log.Data)

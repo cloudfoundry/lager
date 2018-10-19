@@ -133,7 +133,7 @@ func NewFromConfig(component string, config LagerConfig) (lager.Logger, *lager.R
 	if config.RedactSecrets {
 		var err error
 
-		sink, err = lager.NewRedactingWrapperSink(sink, nil, nil)
+		sink, err = lager.NewRedactingSink(sink, nil, nil)
 
 		if err != nil {
 			panic(err)

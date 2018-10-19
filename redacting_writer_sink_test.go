@@ -87,7 +87,7 @@ var _ = Describe("RedactingWriterSink", func() {
 	})
 })
 
-var _ = Describe("RedactingWrapperSink", func() {
+var _ = Describe("RedactingSink", func() {
 	var (
 		sink     lager.Sink
 		testSink *lagertest.TestSink
@@ -97,7 +97,7 @@ var _ = Describe("RedactingWrapperSink", func() {
 		testSink = lagertest.NewTestSink()
 
 		var err error
-		sink, err = lager.NewRedactingWrapperSink(testSink, nil, nil)
+		sink, err = lager.NewRedactingSink(testSink, nil, nil)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

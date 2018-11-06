@@ -68,16 +68,18 @@ func (t TimeFormat) String() string {
 }
 
 type LagerConfig struct {
-	LogLevel      string     `json:"log_level,omitempty"`
-	RedactSecrets bool       `json:"redact_secrets,omitempty"`
-	TimeFormat    TimeFormat `json:"time_format"`
+	LogLevel            string     `json:"log_level,omitempty"`
+	RedactSecrets       bool       `json:"redact_secrets,omitempty"`
+	TimeFormat          TimeFormat `json:"time_format"`
+	MaxDataStringLength int        `json:"max_data_string_length"`
 }
 
 func DefaultLagerConfig() LagerConfig {
 	return LagerConfig{
-		LogLevel:      string(INFO),
-		RedactSecrets: false,
-		TimeFormat:    FormatUnixEpoch,
+		LogLevel:            string(INFO),
+		RedactSecrets:       false,
+		TimeFormat:          FormatUnixEpoch,
+		MaxDataStringLength: 0,
 	}
 }
 
@@ -136,7 +138,10 @@ func NewFromConfig(component string, config LagerConfig) (lager.Logger, *lager.R
 		if err != nil {
 			panic(err)
 		}
+	}
 
+	if config.MaxDataStringLength > 0 {
+		sink = lager.NewTruncatingSink(sink, config.MaxDataStringLength)
 	}
 
 	return newLogger(component, config.LogLevel, sink)

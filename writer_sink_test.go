@@ -1,6 +1,7 @@
 package lager_test
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -92,6 +93,39 @@ var _ = Describe("WriterSink", func() {
 				}
 				Expect(line).To(MatchJSON(fmt.Sprintf(`{"message":"%s","log_level":1,"timestamp":"","source":"","data":null}`, content)))
 			}
+		})
+	})
+
+	Context("when using a buffered writer", func() {
+		var (
+			colWriter  *collectingWriter
+			bufferSize int
+		)
+
+		BeforeEach(func() {
+			colWriter = &collectingWriter{}
+		})
+
+		JustBeforeEach(func() {
+			bufWriter := bufio.NewWriterSize(colWriter, bufferSize)
+			sink = lager.NewWriterSink(bufWriter, lager.INFO)
+		})
+
+		Context("and the message has length exactly equal to the buffer size", func() {
+			var message lager.LogFormat
+
+			BeforeEach(func() {
+				message = lager.LogFormat{LogLevel: lager.INFO, Message: "hello"}
+				bufferSize = len(message.ToJSON())
+			})
+
+			It("does not write messages starting with a new line", func() {
+				sink.Log(message)
+				sink.Log(message)
+				Expect(len(colWriter.writes)).To(Equal(2))
+				Expect(colWriter.writes[0]).NotTo(HavePrefix("\n"))
+				Expect(colWriter.writes[1]).NotTo(HavePrefix("\n"))
+			})
 		})
 	})
 })
@@ -246,6 +280,39 @@ var _ = Describe("PrettyPrintWriter", func() {
 			}
 		})
 	})
+
+	Context("when using a buffered writer", func() {
+		var (
+			colWriter  *collectingWriter
+			bufferSize int
+		)
+
+		BeforeEach(func() {
+			colWriter = &collectingWriter{}
+		})
+
+		JustBeforeEach(func() {
+			bufWriter := bufio.NewWriterSize(colWriter, bufferSize)
+			sink = lager.NewPrettySink(bufWriter, lager.INFO)
+		})
+
+		Context("and the message has length exactly equal to the buffer size", func() {
+			var message lager.LogFormat
+
+			BeforeEach(func() {
+				message = lager.LogFormat{LogLevel: lager.INFO, Message: "hello"}
+				bufferSize = len(message.ToJSON())
+			})
+
+			It("does not write messages starting with a new line", func() {
+				sink.Log(message)
+				sink.Log(message)
+				Expect(len(colWriter.writes)).To(Equal(2))
+				Expect(colWriter.writes[0]).NotTo(HavePrefix("\n"))
+				Expect(colWriter.writes[1]).NotTo(HavePrefix("\n"))
+			})
+		})
+	})
 })
 
 // copyWriter is an INTENTIONALLY UNSAFE writer. Use it to test code that
@@ -278,6 +345,15 @@ func (writer *copyWriter) Copy() []byte {
 	contents := make([]byte, len(writer.contents))
 	copy(contents, writer.contents)
 	return contents
+}
+
+type collectingWriter struct {
+	writes []string
+}
+
+func (w *collectingWriter) Write(p []byte) (n int, err error) {
+	w.writes = append(w.writes, string(p))
+	return len(p), nil
 }
 
 // duplicate of logger.go's formatTimestamp() function

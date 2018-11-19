@@ -220,21 +220,13 @@ var _ = Describe("Chug", func() {
 			Eventually(stream).Should(Receive(&entry))
 		})
 
-		itReturnsRawData := func() {
-			It("returns raw data", func() {
-				Expect(entry.IsLager).To(BeFalse())
-				Expect(entry.Log).To(BeZero())
-				Expect(entry.Raw).To(Equal(input))
-			})
-		}
-
 		Context("when fed a stream of malformed lager messages", func() {
 			Context("when the timestamp is invalid", func() {
 				BeforeEach(func() {
 					input = []byte(`{"timestamp":"tomorrow","source":"chug-test","message":"chug-test.chug","log_level":3,"data":{"some-float":3,"some-string":"foo","error":7}}`)
 				})
 
-				itReturnsRawData()
+				itReturnsRawData(entry, input)
 			})
 
 			Context("when the error does not parse", func() {
@@ -242,7 +234,7 @@ var _ = Describe("Chug", func() {
 					input = []byte(`{"timestamp":"1407102779.028711081","source":"chug-test","message":"chug-test.chug","log_level":3,"data":{"some-float":3,"some-string":"foo","error":7}}`)
 				})
 
-				itReturnsRawData()
+				itReturnsRawData(entry, input)
 			})
 
 			Context("when the trace does not parse", func() {
@@ -250,7 +242,7 @@ var _ = Describe("Chug", func() {
 					input = []byte(`{"timestamp":"1407102779.028711081","source":"chug-test","message":"chug-test.chug","log_level":3,"data":{"some-float":3,"some-string":"foo","trace":7}}`)
 				})
 
-				itReturnsRawData()
+				itReturnsRawData(entry, input)
 			})
 
 			Context("when the session does not parse", func() {
@@ -258,7 +250,7 @@ var _ = Describe("Chug", func() {
 					input = []byte(`{"timestamp":"1407102779.028711081","source":"chug-test","message":"chug-test.chug","log_level":3,"data":{"some-float":3,"some-string":"foo","session":7}}`)
 				})
 
-				itReturnsRawData()
+				itReturnsRawData(entry, input)
 			})
 		})
 
@@ -267,7 +259,7 @@ var _ = Describe("Chug", func() {
 				input = []byte(`{"source":"chattanooga"}`)
 			})
 
-			itReturnsRawData()
+			itReturnsRawData(entry, input)
 		})
 
 		Context("When fed none-JSON that is not a lager message at all", func() {
@@ -275,7 +267,38 @@ var _ = Describe("Chug", func() {
 				input = []byte(`ß`)
 			})
 
-			itReturnsRawData()
+			itReturnsRawData(entry, input)
+		})
+	})
+
+	Context("when writing is complete", func() {
+		var input []byte
+		var entry Entry
+
+		BeforeEach(func() {
+			input = []byte("hello")
+		})
+
+		JustBeforeEach(func() {
+			pipeWriter.Write(input)
+			pipeWriter.Write([]byte("\n"))
+			Expect(pipeWriter.Close()).To(Succeed())
+
+			Eventually(stream).Should(Receive(&entry))
+		})
+
+		itReturnsRawData(entry, input)
+
+		It("returns no more messages", func() {
+			Consistently(stream).ShouldNot(Receive())
 		})
 	})
 })
+
+func itReturnsRawData(entry Entry, input []byte) {
+	It("returns raw data", func() {
+		Expect(entry.IsLager).To(BeFalse())
+		Expect(entry.Log).To(BeZero())
+		Expect(entry.Raw).To(Equal(input))
+	})
+}

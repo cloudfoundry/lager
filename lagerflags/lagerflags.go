@@ -116,7 +116,7 @@ func ConfigFromFlags() LagerConfig {
 }
 
 func New(component string) (lager.Logger, *lager.ReconfigurableSink) {
-	return newLogger(component, minLogLevel, lager.NewWriterSink(os.Stdout, lager.DEBUG))
+	return NewFromConfig(component, ConfigFromFlags())
 }
 
 func NewFromSink(component string, sink lager.Sink) (lager.Logger, *lager.ReconfigurableSink) {

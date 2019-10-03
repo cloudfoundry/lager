@@ -145,6 +145,22 @@ var _ = Describe("Lagerflags", func() {
 			Eventually(buf).Should(gbytes.Say(`"password":"\*REDACTED\*"`))
 		})
 
+		It("creates a logger that redacts secrets using the supplied redaction regex", func() {
+			buf, origStdout := replaceStdoutWithBuf()
+			defer func() {
+				os.Stdout = origStdout
+			}()
+
+			logger, _ := lagerflags.NewFromConfig("test", lagerflags.LagerConfig{
+				LogLevel:       lagerflags.INFO,
+				RedactSecrets:  true,
+				RedactPatterns: []string{"bar"},
+			})
+
+			logger.Info("hello", lager.Data{"foo": "bar"})
+			Eventually(buf).Should(gbytes.Say(`"foo":"\*REDACTED\*"`))
+		})
+
 		It("creates a logger that truncates long strings", func() {
 			buf, origStdout := replaceStdoutWithBuf()
 			defer func() {

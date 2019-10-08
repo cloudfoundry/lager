@@ -77,4 +77,13 @@ var _ = Describe("JSON Redacter", func() {
 			Expect(resp).To(Equal([]byte(`{"foo":"fooval","secret_stuff":{"password":"*REDACTED*"}}`)))
 		})
 	})
+
+	It("DefaultValuePatterns returns the default set of value patterns", func() {
+		Expect(lager.DefaultValuePatterns()).To(ContainElement(`AKIA[A-Z0-9]{16}`))
+		Expect(lager.DefaultValuePatterns()).To(ContainElement(`KEY["']?\s*(?::|=>|=)\s*["']?[A-Z0-9/\+=]{40}["']?`))
+		Expect(lager.DefaultValuePatterns()).To(ContainElement(`\$1\$[A-Z0-9./]{1,16}\$[A-Z0-9./]{22}`))
+		Expect(lager.DefaultValuePatterns()).To(ContainElement(`\$5\$[A-Z0-9./]{1,16}\$[A-Z0-9./]{43}`))
+		Expect(lager.DefaultValuePatterns()).To(ContainElement(`\$6\$[A-Z0-9./]{1,16}\$[A-Z0-9./]{86}`))
+		Expect(lager.DefaultValuePatterns()).To(ContainElement(`-----BEGIN(.*)PRIVATE KEY-----`))
+	})
 })

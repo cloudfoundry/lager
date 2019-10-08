@@ -18,6 +18,7 @@ const (
 type LagerConfig struct {
 	LogLevel            string     `json:"log_level,omitempty"`
 	RedactSecrets       bool       `json:"redact_secrets,omitempty"`
+	RedactPatterns      []string   `json:"redact_patterns,omitempty"`
 	TimeFormat          TimeFormat `json:"time_format"`
 	MaxDataStringLength int        `json:"max_data_string_length"`
 }
@@ -26,6 +27,7 @@ func DefaultLagerConfig() LagerConfig {
 	return LagerConfig{
 		LogLevel:            string(INFO),
 		RedactSecrets:       false,
+		RedactPatterns:      nil,
 		TimeFormat:          FormatUnixEpoch,
 		MaxDataStringLength: 0,
 	}
@@ -33,6 +35,7 @@ func DefaultLagerConfig() LagerConfig {
 
 var minLogLevel string
 var redactSecrets bool
+var redactPatterns RedactPatterns
 var timeFormat TimeFormat
 
 func AddFlags(flagSet *flag.FlagSet) {
@@ -49,6 +52,11 @@ func AddFlags(flagSet *flag.FlagSet) {
 		"use a redacting log sink to scrub sensitive values from data being logged",
 	)
 	flagSet.Var(
+		&redactPatterns,
+		"redactPatterns",
+		"Regex patterns to use to determine sensitive values for redaction",
+	)
+	flagSet.Var(
 		&timeFormat,
 		"timeFormat",
 		`Format for timestamp in component logs. Valid values are "unix-epoch" and "rfc3339".`,
@@ -57,9 +65,10 @@ func AddFlags(flagSet *flag.FlagSet) {
 
 func ConfigFromFlags() LagerConfig {
 	return LagerConfig{
-		LogLevel:      minLogLevel,
-		RedactSecrets: redactSecrets,
-		TimeFormat:    timeFormat,
+		LogLevel:       minLogLevel,
+		RedactSecrets:  redactSecrets,
+		RedactPatterns: redactPatterns,
+		TimeFormat:     timeFormat,
 	}
 }
 
@@ -82,7 +91,7 @@ func NewFromConfig(component string, config LagerConfig) (lager.Logger, *lager.R
 
 	if config.RedactSecrets {
 		var err error
-		sink, err = lager.NewRedactingSink(sink, nil, nil)
+		sink, err = lager.NewRedactingSink(sink, nil, config.RedactPatterns)
 		if err != nil {
 			panic(err)
 		}

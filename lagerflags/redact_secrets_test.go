@@ -1,8 +1,9 @@
 package lagerflags_test
 
 import (
-	"code.cloudfoundry.org/lager/lagerflags"
 	"flag"
+
+	"code.cloudfoundry.org/lager/lagerflags"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -14,6 +15,7 @@ var _ = Describe("RedactSecrets", func() {
 		var pattern lagerflags.RedactPatterns
 
 		BeforeEach(func() {
+			pattern = nil
 			flagSet = flag.NewFlagSet("test", flag.ContinueOnError)
 			flagSet.Usage = func() {}
 			flagSet.SetOutput(nopWriter{})

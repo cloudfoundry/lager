@@ -197,7 +197,7 @@ var _ = Describe("PrettyPrintWriter", func() {
 				"123.",
 				"123.456.",
 				"123.456.789",
-				strconv.FormatInt(time.Now().Unix(), 10),         // invalid - missing "."
+				strconv.FormatInt(time.Now().Unix(), 10), // invalid - missing "."
 				strconv.FormatInt(-time.Now().Unix(), 10) + ".0", // negative
 				time.Now().Format(time.RFC3339),
 				time.Now().Format(time.RFC3339Nano),

@@ -31,8 +31,11 @@ func (sink *writerSink) Log(log LogFormat) {
 		return
 	}
 
+	// Convert to json outside of critical section to minimize time spent holding lock
+	message := append(log.ToJSON(), '\n')
+
 	sink.writeL.Lock()
-	sink.writer.Write(append(log.ToJSON(), '\n'))
+	sink.writer.Write(message)
 	sink.writeL.Unlock()
 }
 
@@ -54,7 +57,10 @@ func (sink *prettySink) Log(log LogFormat) {
 		return
 	}
 
+	// Convert to json outside of critical section to minimize time spent holding lock
+	message := append(log.toPrettyJSON(), '\n')
+
 	sink.writeL.Lock()
-	sink.writer.Write(append(log.toPrettyJSON(), '\n'))
+	sink.writer.Write(message)
 	sink.writeL.Unlock()
 }

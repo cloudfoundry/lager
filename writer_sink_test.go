@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,20 +14,16 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/chug"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("WriterSink", func() {
-	const MaxThreads = 100
+
 
 	var sink lager.Sink
 	var writer *copyWriter
-
-	BeforeSuite(func() {
-		runtime.GOMAXPROCS(MaxThreads)
-	})
 
 	BeforeEach(func() {
 		writer = NewCopyWriter()

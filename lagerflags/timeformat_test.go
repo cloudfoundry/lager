@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"code.cloudfoundry.org/lager/lagerflags"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

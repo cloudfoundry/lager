@@ -16,7 +16,7 @@ jobs:
     - uses: actions/setup-go@v3
       with:
         go-version: 1.18
-    - run: go run github.com/onsi/ginkgo/v2/ginkgo -p -r -race --randomize-all
+    - run: go run github.com/onsi/ginkgo/v2/ginkgo -r --procs=3 --compilers=3 --randomize-all --randomize-suites --fail-on-pending --keep-going --race --trace
 
   vet:
     runs-on: ubuntu-latest

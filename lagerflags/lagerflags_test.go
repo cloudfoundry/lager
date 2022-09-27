@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -46,7 +45,7 @@ var _ = Describe("Lagerflags", func() {
 
 		BeforeEach(func() {
 			flagSet = flag.NewFlagSet("test", flag.ContinueOnError)
-			flagSet.SetOutput(ioutil.Discard)
+			flagSet.SetOutput(io.Discard)
 			lagerflags.AddFlags(flagSet)
 		})
 

@@ -34,14 +34,6 @@ type LogEntry struct {
 	Data lager.Data
 }
 
-type lagerTime struct {
-	t time.Time
-}
-
-func (t lagerTime) Time() time.Time {
-	return t.t
-}
-
 func toTimestamp(d string) (time.Time, error) {
 	f, err := strconv.ParseFloat(d, 64)
 	if err == nil {

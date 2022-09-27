@@ -79,7 +79,7 @@ func (r JSONRedacter) redactValue(data *interface{}) interface{} {
 }
 
 func (r JSONRedacter) redactArray(data *[]interface{}) {
-	for i, _ := range *data {
+	for i := range *data {
 		r.redactValue(&((*data)[i]))
 	}
 }

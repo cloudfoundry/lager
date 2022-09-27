@@ -35,7 +35,7 @@ func (sink *writerSink) Log(log LogFormat) {
 	message := append(log.ToJSON(), '\n')
 
 	sink.writeL.Lock()
-	sink.writer.Write(message)
+	sink.writer.Write(message) //nolint:errcheck
 	sink.writeL.Unlock()
 }
 
@@ -61,6 +61,6 @@ func (sink *prettySink) Log(log LogFormat) {
 	message := append(log.toPrettyJSON(), '\n')
 
 	sink.writeL.Lock()
-	sink.writer.Write(message)
+	sink.writer.Write(message) //nolint:errcheck
 	sink.writeL.Unlock()
 }

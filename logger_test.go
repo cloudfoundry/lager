@@ -94,7 +94,7 @@ var _ = Describe("Logger", func() {
 				session.Error("some-error-action", errors.New("oh no!"), lager.Data{"level": "error"})
 
 				defer func() {
-					recover()
+					recover() //nolint:errcheck
 				}()
 
 				session.Fatal("some-fatal-action", errors.New("oh no!"), lager.Data{"level": "fatal"})

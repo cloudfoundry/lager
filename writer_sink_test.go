@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/chug"
+	"code.cloudfoundry.org/lager/v2"
+	"code.cloudfoundry.org/lager/v2/chug"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,7 +20,6 @@ import (
 )
 
 var _ = Describe("WriterSink", func() {
-
 
 	var sink lager.Sink
 	var writer *copyWriter

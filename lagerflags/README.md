@@ -17,8 +17,8 @@ import (
     "flag"
     "fmt"
 
-    "code.cloudfoundry.org/lager/lagerflags"
-    "code.cloudfoundry.org/lager"
+    "code.cloudfoundry.org/lager/v2/lagerflags"
+    "code.cloudfoundry.org/lager/v2"
 )
 
 func main() {

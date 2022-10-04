@@ -7,9 +7,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v2"
+	"code.cloudfoundry.org/lager/v2/lagerctx"
+	"code.cloudfoundry.org/lager/v2/lagertest"
 )
 
 var _ = Describe("Lager Context", func() {

@@ -19,7 +19,7 @@ func TestIntegration(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	var err error
-	testBinary, err = gexec.Build("code.cloudfoundry.org/lager/lagerflags/integration", "-race")
+	testBinary, err = gexec.Build("code.cloudfoundry.org/lager/v2/lagerflags/integration", "-race")
 	Expect(err).NotTo(HaveOccurred())
 })
 

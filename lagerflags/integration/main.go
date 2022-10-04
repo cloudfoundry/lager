@@ -4,8 +4,8 @@ import (
 	"errors"
 	"flag"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/lager/v2"
+	"code.cloudfoundry.org/lager/v2/lagerflags"
 )
 
 func main() {

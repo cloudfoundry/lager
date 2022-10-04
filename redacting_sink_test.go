@@ -3,8 +3,8 @@ package lager_test
 import (
 	"encoding/json"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v2"
+	"code.cloudfoundry.org/lager/v2/lagertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

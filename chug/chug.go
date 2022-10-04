@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v2"
 )
 
 type Entry struct {

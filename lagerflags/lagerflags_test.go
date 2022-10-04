@@ -12,8 +12,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/lager/v2"
+	"code.cloudfoundry.org/lager/v2/lagerflags"
 )
 
 // TODO: Allow sink output to be redirected to a dependency injected

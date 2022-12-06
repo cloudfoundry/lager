@@ -189,8 +189,10 @@ var _ = Describe("Chug", func() {
 
 		JustBeforeEach(func() {
 			input = []byte(`[some-component][e]{"timestamp":"1407102779.028711081","source":"chug-test","message":"chug-test.chug","log_level":0,"data":{"some-float":3,"some-string":"foo"}}...some trailing stuff`)
-			pipeWriter.Write(input)
-			pipeWriter.Write([]byte("\n"))
+			_, err := pipeWriter.Write(input)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = pipeWriter.Write([]byte("\n"))
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(stream).Should(Receive(&entry))
 		})
@@ -213,8 +215,10 @@ var _ = Describe("Chug", func() {
 		var entry chug.Entry
 
 		JustBeforeEach(func() {
-			pipeWriter.Write(input)
-			pipeWriter.Write([]byte("\n"))
+			_, err := pipeWriter.Write(input)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = pipeWriter.Write([]byte("\n"))
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(stream).Should(Receive(&entry))
 		})
@@ -279,8 +283,10 @@ var _ = Describe("Chug", func() {
 		})
 
 		JustBeforeEach(func() {
-			pipeWriter.Write(input)
-			pipeWriter.Write([]byte("\n"))
+			_, err := pipeWriter.Write(input)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = pipeWriter.Write([]byte("\n"))
+			Expect(err).NotTo(HaveOccurred())
 			Expect(pipeWriter.Close()).To(Succeed())
 
 			Eventually(stream).Should(Receive(&entry))

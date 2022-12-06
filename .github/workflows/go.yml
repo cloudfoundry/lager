@@ -2,26 +2,39 @@ name: Go
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+  - cron: '00 16 * * 1'
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Get Go version from go.mod
-      run: |
-        go_version=$(cat go.mod | grep "^go" | cut -d ' ' -f 2)
-        echo "go_version=${go_version}" >> $GITHUB_ENV
-
-    - name: Set up Go
-      uses: actions/setup-go@v2
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
       with:
-        go-version: ${{ env.go_version }}
+        go-version-file: 'go.mod'
+        check-latest: true
+    - run: go run github.com/onsi/ginkgo/v2/ginkgo -r --procs=3 --compilers=3 --randomize-all --randomize-suites --fail-on-pending --keep-going --race --trace
 
-    - name: Build
-      run: go build -v ./...
+  vet:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version-file: 'go.mod'
+        check-latest: true
+    - run: go vet ./...
 
-    - name: Test
-      run: go test -v ./...
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version-file: 'go.mod'
+        check-latest: true
+    - uses: golangci/golangci-lint-action@v3.2.0

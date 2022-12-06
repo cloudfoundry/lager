@@ -67,8 +67,6 @@ func (s *TestSink) Logs() []lager.LogFormat {
 		}
 		logs = append(logs, log)
 	}
-
-	return logs
 }
 
 func (s *TestSink) LogMessages() []string {

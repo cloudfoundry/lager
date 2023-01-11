@@ -1,1 +1,1 @@
-package lagerflags // import "code.cloudfoundry.org/lager/lagerflags"
+package lagerflags // import "code.cloudfoundry.org/lager/v3/lagerflags"

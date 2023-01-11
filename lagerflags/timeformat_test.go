@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/lager/v3/lagerflags"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

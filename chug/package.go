@@ -1,1 +1,1 @@
-package chug // import "code.cloudfoundry.org/lager/chug"
+package chug // import "code.cloudfoundry.org/lager/v3/chug"

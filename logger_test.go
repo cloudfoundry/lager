@@ -3,6 +3,7 @@ package lager_test
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -371,5 +372,55 @@ var _ = Describe("Logger", func() {
 			})
 		})
 
+	})
+
+	Describe("WithTraceInfo", func() {
+		var req *http.Request
+
+		BeforeEach(func() {
+			var err error
+			req, err = http.NewRequest("GET", "/foo", nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("when request does not contain trace id", func() {
+			It("does not set trace and span id", func() {
+				logger = logger.WithTraceInfo(req)
+				logger.Info("test-log")
+
+				log := testSink.Logs()[0]
+
+				Expect(log.Data).To(BeEmpty())
+				Expect(log.Data).To(BeEmpty())
+			})
+		})
+
+		Context("when request contains trace id", func() {
+			It("sets trace and span id", func() {
+				req.Header.Set("X-Vcap-Request-Id", "7f461654-74d1-1ee5-8367-77d85df2cdab")
+
+				logger = logger.WithTraceInfo(req)
+				logger.Info("test-log")
+
+				log := testSink.Logs()[0]
+
+				Expect(log.Data["trace-id"]).To(Equal("7f46165474d11ee5836777d85df2cdab"))
+				Expect(log.Data["span-id"]).NotTo(BeEmpty())
+			})
+		})
+
+		Context("when request contains invalid trace id", func() {
+			It("does not set trace and span id", func() {
+				req.Header.Set("X-Vcap-Request-Id", "invalid-request-id")
+
+				logger = logger.WithTraceInfo(req)
+				logger.Info("test-log")
+
+				log := testSink.Logs()[0]
+
+				Expect(log.Data).To(BeEmpty())
+				Expect(log.Data).To(BeEmpty())
+			})
+		})
 	})
 })

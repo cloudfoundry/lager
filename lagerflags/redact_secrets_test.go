@@ -3,7 +3,7 @@ package lagerflags_test
 import (
 	"flag"
 
-	"code.cloudfoundry.org/lager/v3/lagerflags"
+	"code.cloudfoundry.org/lager/lagerflags"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

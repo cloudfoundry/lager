@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"code.cloudfoundry.org/lager/v3/chug"
+	"code.cloudfoundry.org/lager/chug"
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
 )

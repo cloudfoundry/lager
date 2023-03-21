@@ -1,6 +1,6 @@
 package lager
 
-import "code.cloudfoundry.org/lager/v3/internal/truncate"
+import "code.cloudfoundry.org/lager/internal/truncate"
 
 type truncatingSink struct {
 	sink                Sink

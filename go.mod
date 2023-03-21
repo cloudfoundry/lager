@@ -1,4 +1,4 @@
-module code.cloudfoundry.org/lager/v3
+module code.cloudfoundry.org/lager
 
 go 1.19
 

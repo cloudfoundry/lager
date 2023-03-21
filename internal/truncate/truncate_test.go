@@ -3,7 +3,7 @@ package truncate_test
 import (
 	"unsafe"
 
-	"code.cloudfoundry.org/lager/v3/internal/truncate"
+	"code.cloudfoundry.org/lager/internal/truncate"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

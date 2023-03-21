@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 )
 
 const (

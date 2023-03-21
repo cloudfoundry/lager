@@ -1,1 +1,1 @@
-package truncate // import "code.cloudfoundry.org/lager/v3/internal/truncate"
+package truncate // import "code.cloudfoundry.org/lager/internal/truncate"

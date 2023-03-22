@@ -396,6 +396,46 @@ var _ = Describe("Logger", func() {
 		})
 
 		Context("when request contains trace id", func() {
+			Context("when request contains span id", func() {
+				It("sets the parent id", func() {
+					req.Header.Set("X-Vcap-Request-Id", "7f461654-74d1-1ee5-8367-77d85df2cdab")
+					req.Header.Set("X-B3-SpanId", "7f46165474d11ee5836777d85df2cdab")
+
+					logger = logger.WithTraceInfo(req)
+					logger.Info("test-log")
+
+					log := testSink.Logs()[0]
+
+					Expect(log.Data["parent-id"]).NotTo(BeNil())
+					Expect(log.Data["parent-id"]).To(Equal("7f46165474d11ee5836777d85df2cdab"))
+				})
+
+				Context("when the span is invalid", func() {
+					It("does not set the parent id", func() {
+						req.Header.Set("X-Vcap-Request-Id", "7f461654-74d1-1ee5-8367-77d85df2cdab")
+						req.Header.Set("X-B3-SpanId", "invalid-span-id")
+
+						logger = logger.WithTraceInfo(req)
+						logger.Info("test-log")
+
+						log := testSink.Logs()[0]
+
+						Expect(log.Data["parent-id"]).To(BeNil())
+					})
+				})
+			})
+
+			Context("when request does not contain span id", func() {
+				It("does not set the parent id", func() {
+					req.Header.Set("X-Vcap-Request-Id", "7f461654-74d1-1ee5-8367-77d85df2cdab")
+
+					logger = logger.WithTraceInfo(req)
+					logger.Info("test-log")
+
+					log := testSink.Logs()[0]
+					Expect(log.Data["parent-id"]).To(BeNil())
+				})
+			})
 			It("sets trace and span id", func() {
 				req.Header.Set("X-Vcap-Request-Id", "7f461654-74d1-1ee5-8367-77d85df2cdab")
 

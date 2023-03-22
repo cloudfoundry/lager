@@ -2,6 +2,7 @@ package lager
 
 import (
 	"fmt"
+	"math/big"
 	"net/http"
 	"runtime"
 	"strings"
@@ -15,6 +16,7 @@ import (
 const (
 	StackTraceBufferSize = 1024 * 100
 	RequestIdHeader      = "X-Vcap-Request-Id"
+	SpanIdHeader         = "X-B3-SpanId"
 )
 
 type Logger interface {
@@ -85,6 +87,16 @@ func (l *logger) WithData(data Data) Logger {
 	}
 }
 
+func isValidHex128(s string) bool {
+	if len(s) != 32 {
+		return false
+	}
+
+	_, success := new(big.Int).SetString(s, 16)
+
+	return success
+}
+
 func (l *logger) WithTraceInfo(req *http.Request) Logger {
 	traceIDHeader := req.Header.Get(RequestIdHeader)
 	if traceIDHeader == "" {
@@ -96,8 +108,19 @@ func (l *logger) WithTraceInfo(req *http.Request) Logger {
 		return l.WithData(nil)
 	}
 
-	spanID := idgenerator.NewRandom128().SpanID(traceID)
-	return l.WithData(Data{"trace-id": traceID.String(), "span-id": spanID.String()})
+	newSpanID := idgenerator.NewRandom128().SpanID(traceID)
+
+	traceData := Data{
+		"trace-id": traceID.String(),
+		"span-id":  newSpanID,
+	}
+
+	currentSpanID := req.Header.Get(SpanIdHeader)
+	if currentSpanID != "" && isValidHex128(currentSpanID) {
+		traceData["parent-id"] = currentSpanID
+	}
+
+	return l.WithData(traceData)
 }
 
 func (l *logger) Debug(action string, data ...Data) {

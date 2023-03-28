@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/chug"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/chug"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

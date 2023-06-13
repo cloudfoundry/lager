@@ -407,6 +407,27 @@ var _ = Describe("Logger", func() {
 				Expect(log.Data["trace-id"]).To(Equal("7f46165474d11ee5836777d85df2cdab"))
 				Expect(log.Data["span-id"]).NotTo(BeEmpty())
 			})
+
+			It("generates new span id", func() {
+				req.Header.Set("X-Vcap-Request-Id", "7f461654-74d1-1ee5-8367-77d85df2cdab")
+
+				logger = logger.WithTraceInfo(req)
+				logger.Info("test-log")
+
+				log1 := testSink.Logs()[0]
+
+				Expect(log1.Data["trace-id"]).To(Equal("7f46165474d11ee5836777d85df2cdab"))
+				Expect(log1.Data["span-id"]).NotTo(BeEmpty())
+
+				logger = logger.WithTraceInfo(req)
+				logger.Info("test-log")
+
+				log2 := testSink.Logs()[1]
+
+				Expect(log2.Data["trace-id"]).To(Equal("7f46165474d11ee5836777d85df2cdab"))
+				Expect(log2.Data["span-id"]).NotTo(BeEmpty())
+				Expect(log2.Data["span-id"]).NotTo(Equal(log1.Data["span-id"]))
+			})
 		})
 
 		Context("when request contains invalid trace id", func() {

@@ -19,7 +19,7 @@ var _ = Describe("NewSlogSink", func() {
 		logger lager.Logger
 	)
 
-	matchTimestamp := MatchRegexp(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{5,6}Z$`)
+	matchTimestamp := MatchRegexp(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{5,9}Z$`)
 
 	parsedLogMessage := func() (receiver map[string]any) {
 		Expect(json.Unmarshal(buf.Bytes(), &receiver)).To(Succeed())

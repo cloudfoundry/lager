@@ -1,6 +1,6 @@
 module code.cloudfoundry.org/lager/v3
 
-go 1.19
+go 1.20
 
 require (
 	github.com/onsi/ginkgo/v2 v2.13.2

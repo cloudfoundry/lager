@@ -9,6 +9,7 @@ import (
 )
 
 const MaxThreads = 100
+
 var _ = BeforeSuite(func() {
 	runtime.GOMAXPROCS(MaxThreads)
 })

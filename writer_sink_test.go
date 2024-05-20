@@ -21,7 +21,6 @@ import (
 
 var _ = Describe("WriterSink", func() {
 
-
 	var sink lager.Sink
 	var writer *copyWriter
 

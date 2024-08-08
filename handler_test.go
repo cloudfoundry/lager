@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+        "fmt"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -56,6 +57,20 @@ var _ = Describe("NewHandler", func() {
 				HaveKeyWithValue("baz", float64(42)),
 			),
 			"LogLevel": Equal(lager.DEBUG),
+		})))
+	})
+
+	It("logs an error message", func() {
+		slog.New(h).Error("foo", "error", fmt.Errorf("boom"))
+		logs := s.Logs()
+		Expect(logs).To(ConsistOf(MatchFields(IgnoreExtras, Fields{
+			"Source":  Equal("test"),
+			"Message": Equal("test.foo"),
+			"Data": SatisfyAll(
+				HaveLen(1),
+				HaveKeyWithValue("error", "boom"),
+			),
+			"LogLevel": Equal(lager.ERROR),
 		})))
 	})
 

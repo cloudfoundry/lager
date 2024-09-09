@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -368,7 +369,7 @@ var _ = Describe("Logger", func() {
 			})
 
 			It("panics with the provided error (i.e. nil)", func() {
-				Expect(fatalErr).To(BeNil())
+				Expect(fatalErr).To(MatchError(&runtime.PanicNilError{}))
 			})
 		})
 

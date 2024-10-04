@@ -5,10 +5,10 @@ package lager_test
 import (
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-        "fmt"
 	"log/slog"
 	"strconv"
 	"strings"

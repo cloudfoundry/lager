@@ -5,6 +5,7 @@ package lager_test
 import (
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
+	"errors"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -59,7 +60,22 @@ var _ = Describe("NewHandler", func() {
 		})))
 	})
 
-	It("behaves like a slog.NewHandler", func() {
+	It("logs the message from an error", func() {
+		slog.New(h).Error("bad", "err1", errors.New("boom"), slog.Any("err2", errors.New("bang")))
+		logs := s.Logs()
+		Expect(logs).To(ConsistOf(MatchFields(IgnoreExtras, Fields{
+			"Source":  Equal("test"),
+			"Message": Equal("test.bad"),
+			"Data": SatisfyAll(
+				HaveLen(2),
+				HaveKeyWithValue("err1", "boom"),
+				HaveKeyWithValue("err2", "bang"),
+			),
+			"LogLevel": Equal(lager.ERROR),
+		})))
+	})
+
+	It("passes the slogtest.TestHandler acceptance tests", func() {
 		results := func() (result []map[string]any) {
 			for _, l := range s.Logs() {
 				d := l.Data

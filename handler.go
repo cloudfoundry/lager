@@ -145,7 +145,19 @@ func processAttr(attr slog.Attr, target map[string]any) {
 	case attr.Key == "":
 		// skip
 	default:
-		target[attr.Key] = rv.Any()
+		target[attr.Key] = processValue(rv)
+	}
+}
+
+// processValue takes an slog.Attr.Value and converts it into something suitable
+// for a lager.Data object. Specifically error objects put into lager.Data objects are rendered
+// as `{}`, so they are converted to strings so that the error message can be read.
+func processValue(val slog.Value) any {
+	switch v := val.Any().(type) {
+	case error:
+		return v.Error()
+	default:
+		return v
 	}
 }
 

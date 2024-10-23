@@ -1,4 +1,4 @@
-//go:build go1.21
+//go:build go1.23
 
 package lager
 
@@ -60,4 +60,49 @@ func toSlogLevel(l LogLevel) slog.Level {
 	default:
 		return slog.LevelInfo
 	}
+}
+
+// toSlogLevel converts slog levels to lager log levels
+func toLagerLevel(l slog.Level) LogLevel {
+	switch l {
+	case slog.LevelDebug:
+		return DEBUG
+	case slog.LevelError:
+		return ERROR
+	case slog.LevelWarn:
+		return ERROR
+	case slog.LevelInfo:
+		return INFO
+	default:
+		return INFO
+	}
+}
+
+func (sink *slogSink) SetMinLevel(level LogLevel) {
+	slog.SetLogLoggerLevel(toSlogLevel(level))
+}
+
+func (sink *slogSink) GetMinLevel() LogLevel {
+
+	noopContext := context.TODO()
+
+	// We have to use a drop through logic to find out the minium logging level of slog
+	// slog's logger has no way of returning the current log level hence this logic.
+	if sink.logger.Handler().Enabled(noopContext, slog.LevelDebug) {
+		return DEBUG
+	}
+
+	if sink.logger.Handler().Enabled(noopContext, slog.LevelInfo) {
+		return INFO
+	}
+
+	if sink.logger.Handler().Enabled(noopContext, slog.LevelWarn) {
+		return ERROR
+	}
+
+	if sink.logger.Handler().Enabled(noopContext, slog.LevelError) {
+		return ERROR
+	}
+
+	return INFO
 }
